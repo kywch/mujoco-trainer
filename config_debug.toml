@@ -1,0 +1,44 @@
+[base]
+policy_name = "Policy"
+# rnn_name = "Recurrent"  # Assign a value when needed.
+
+[env]
+
+[policy]
+
+[rnn]
+
+# Refer https://github.com/MyoHub/myosuite/blob/main/myosuite/agents/config_mujoco.yaml
+[train]
+seed = 1
+torch_deterministic = true
+cpu_offload = false
+device = "cuda"
+total_timesteps = 10_000_000
+learning_rate = 3e-4
+anneal_lr = true
+gamma = 0.99
+gae_lambda = 0.95
+update_epochs = 10
+norm_adv = true
+clip_coef = 0.2
+clip_vloss = true
+vf_coef = 0.5
+vf_clip_coef = 0.2
+max_grad_norm = 0.5
+ent_coef = 0.0
+# target_kl = None  # Assign a value when needed.
+
+num_envs = 1
+num_workers = 1
+env_batch_size = 1
+zero_copy = false
+data_dir = "experiments"
+checkpoint_interval = 1000
+batch_size = 2048
+minibatch_size = 32
+bptt_horizon = 1
+compile = false
+compile_mode = "reduce-overhead"
+
+capture_video = false
