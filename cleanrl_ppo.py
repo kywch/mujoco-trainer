@@ -44,7 +44,6 @@ if __name__ == "__main__":
         wandb.init(
             project=args.wandb_project,
             group=args.wandb_group,
-            sync_tensorboard=True,
             config=vars(args),
             name=run_name,
             monitor_gym=True,
