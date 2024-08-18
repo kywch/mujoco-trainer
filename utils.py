@@ -37,8 +37,8 @@ def parse_args():
     parser.add_argument(
         "--exp-id", "--exp-name", type=str, default=None, help="Resume from experiment"
     )
-    parser.add_argument("--wandb-project", type=str, default="myosuite")
-    parser.add_argument("--wandb-group", type=str, default="debug")
+    parser.add_argument("--wandb-project", type=str, default="mujoco")
+    parser.add_argument("--wandb-group", type=str, default=None)
     parser.add_argument("--track", action="store_true", help="Track on WandB")
     args = parser.parse_known_args()[0]
 
