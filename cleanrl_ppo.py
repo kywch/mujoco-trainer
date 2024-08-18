@@ -133,6 +133,7 @@ if __name__ == "__main__":
                         print(
                             f"global_step: {global_step}, episode_return: {info['episode_return']}"
                         )
+                        writer.add_scalar("0verview/agent_steps", global_step, global_step)
                         writer.add_scalar(
                             "environment/episode_return", info["episode_return"], global_step
                         )
