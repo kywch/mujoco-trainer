@@ -226,7 +226,7 @@ if __name__ == "__main__":
                 {
                     "0verview/agent_steps": global_step,
                     "0verview/SPS": int(global_step / (time.time() - start_time)),
-                    "0verview/epoch": epoch,
+                    "0verview/epoch": iteration,
                     "0verview/learning_rate": optimizer.param_groups[0]["lr"],
                     "losses/value_loss": v_loss.item(),
                     "losses/policy_loss": pg_loss.item(),
