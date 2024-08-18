@@ -133,7 +133,6 @@ if __name__ == "__main__":
                         print(
                             f"global_step: {global_step}, episode_return: {info['episode_return']}"
                         )
-                        writer.add_scalar("0verview/agent_steps", global_step, global_step)
                         writer.add_scalar(
                             "environment/episode_return", info["episode_return"], global_step
                         )
@@ -241,6 +240,7 @@ if __name__ == "__main__":
         writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
         print(f"Steps: {global_step}, SPS: {int(global_step / (time.time() - start_time))}")
+        writer.add_scalar("0verview/agent_steps", global_step, global_step)
         writer.add_scalar(
             "0verview/SPS", int(global_step / (time.time() - start_time)), global_step
         )
