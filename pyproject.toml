@@ -27,7 +27,6 @@ dependencies = [
     "torch",
     "imageio",
     "pynvml",
-    "tensorboard",  # for cleanrl
 ]
 
 [tool.setuptools.packages.find]

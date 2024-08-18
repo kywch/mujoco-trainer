@@ -8,7 +8,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.tensorboard import SummaryWriter
 
 from environment import cleanrl_env_creator
 from policy import CleanRLPolicy
@@ -51,12 +50,7 @@ if __name__ == "__main__":
             monitor_gym=True,
             save_code=True,
         )
-    writer = SummaryWriter(f"runs/{run_name}")
-    writer.add_text(
-        "hyperparameters",
-        "|param|value|\n|-|-|\n%s"
-        % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
-    )
+    episode_stats = {"episode_return": [], "episode_length": []}
 
     # TRY NOT TO MODIFY: seeding
     random.seed(args.seed)
@@ -133,12 +127,8 @@ if __name__ == "__main__":
                         print(
                             f"global_step: {global_step}, episode_return: {info['episode_return']}"
                         )
-                        writer.add_scalar(
-                            "environment/episode_return", info["episode_return"], global_step
-                        )
-                        writer.add_scalar(
-                            "environment/episode_length", info["episode_length"], global_step
-                        )
+                        episode_stats["episode_return"].append(info["episode_return"])
+                        episode_stats["episode_length"].append(info["episode_length"])
 
         # bootstrap value if not done
         with torch.no_grad():
@@ -231,19 +221,27 @@ if __name__ == "__main__":
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
-        writer.add_scalar("0verview/learning_rate", optimizer.param_groups[0]["lr"], global_step)
-        writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
-        writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
-        writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
-        writer.add_scalar("losses/old_approx_kl", old_approx_kl.item(), global_step)
-        writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
-        writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
-        writer.add_scalar("losses/explained_variance", explained_var, global_step)
         print(f"Steps: {global_step}, SPS: {int(global_step / (time.time() - start_time))}")
-        writer.add_scalar("0verview/agent_steps", global_step, global_step)
-        writer.add_scalar(
-            "0verview/SPS", int(global_step / (time.time() - start_time)), global_step
-        )
+        if args.track:
+            wandb.log(
+                {
+                    "0verview/agent_steps": global_step,
+                    "0verview/SPS": int(global_step / (time.time() - start_time)),
+                    "0verview/epoch": epoch,
+                    "0verview/learning_rate": optimizer.param_groups[0]["lr"],
+                    "losses/value_loss": v_loss.item(),
+                    "losses/policy_loss": pg_loss.item(),
+                    "losses/entropy": entropy_loss.item(),
+                    "losses/old_approx_kl": old_approx_kl.item(),
+                    "losses/approx_kl": approx_kl.item(),
+                    "losses/clipfrac": np.mean(clipfracs),
+                    "losses/explained_variance": explained_var,
+                    "environment/episode_return": np.mean(episode_stats["episode_return"]),
+                    "environment/episode_length": np.mean(episode_stats["episode_length"]),
+                }
+            )
+        episode_stats["episode_return"].clear()
+        episode_stats["episode_length"].clear()
 
     # if args.save_model:
     #     model_path = f"runs/{run_name}/{args.exp_name}.cleanrl_model"
@@ -279,4 +277,5 @@ if __name__ == "__main__":
     #         )
 
     envs.close()
-    writer.close()
+    if args.track:
+        wandb.finish()
