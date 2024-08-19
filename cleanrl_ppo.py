@@ -47,6 +47,7 @@ if __name__ == "__main__":
         "episode_length": [],
         "average_reward": [],
         "normalized_reward": [],
+        "last30episode_return": 0,
     }
 
     # TRY NOT TO MODIFY: seeding
@@ -128,6 +129,7 @@ if __name__ == "__main__":
                         episode_stats["episode_length"].append(info["episode_length"])
                         episode_stats["average_reward"].append(info["average_reward"])
                         episode_stats["normalized_reward"].append(info["normalized_reward"])
+                        episode_stats["last30episode_return"] = info["last30episode_return"]
 
         # bootstrap value if not done
         with torch.no_grad():
@@ -239,6 +241,7 @@ if __name__ == "__main__":
                     "environment/episode_length": np.mean(episode_stats["episode_length"]),
                     "environment/average_reward": np.mean(episode_stats["average_reward"]),
                     "environment/normalized_reward": np.mean(episode_stats["normalized_reward"]),
+                    "environment/last30episode_return": episode_stats["last30episode_return"],
                 }
             )
         episode_stats["episode_return"].clear()

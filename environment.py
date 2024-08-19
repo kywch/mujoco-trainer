@@ -1,6 +1,7 @@
 # from pdb import set_trace as T
 
 import functools
+from collections import deque
 
 import numpy as np
 import gymnasium
@@ -59,13 +60,13 @@ class EpisodeStats(gymnasium.Wrapper):
     """Wrapper for Gymnasium environments that stores
     episodic returns and lengths in infos"""
 
-    def __init__(self, env, center_reward=False):
+    def __init__(self, env):
         self.env = env
         self.observation_space = env.observation_space
         self.action_space = env.action_space
         self.reset()
 
-        self.center_reward = center_reward
+        self.episode_results = deque(maxlen=30)
         self.total_reward = 0
         self.total_steps = 0
 
@@ -83,14 +84,14 @@ class EpisodeStats(gymnasium.Wrapper):
 
         self.info["episode_return"] += reward
         self.info["episode_length"] += 1
-        self.info["average_reward"] = average_reward
 
         if terminated or truncated:
+            self.episode_results.append(self.info["episode_return"])
+            info["last30episode_return"] = np.mean(self.episode_results)
+            info["average_reward"] = average_reward
+
             for k, v in self.info.items():
                 info[k] = v
-
-        if self.center_reward:
-            reward -= average_reward
 
         return observation, reward, terminated, truncated, info
 
