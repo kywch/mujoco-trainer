@@ -42,7 +42,12 @@ if __name__ == "__main__":
     wandb = None
     if args.track:
         wandb = init_wandb(args_dict, run_name)
-    episode_stats = {"episode_return": [], "episode_length": [], "average_reward": []}
+    episode_stats = {
+        "episode_return": [],
+        "episode_length": [],
+        "average_reward": [],
+        "normalized_reward": [],
+    }
 
     # TRY NOT TO MODIFY: seeding
     random.seed(args.seed)
@@ -117,11 +122,12 @@ if __name__ == "__main__":
                 for info in infos["final_info"]:
                     if info and "episode_return" in info:
                         print(
-                            f"global_step: {global_step}, episode_return: {int(info['episode_return'])}, average_reward: {info['average_reward']}"
+                            f"global_step: {global_step}, episode_return: {int(info['episode_return'])}, average_reward: {info['average_reward']:.5f}, normalized_reward: {info['normalized_reward']:.5f}"
                         )
                         episode_stats["episode_return"].append(info["episode_return"])
                         episode_stats["episode_length"].append(info["episode_length"])
                         episode_stats["average_reward"].append(info["average_reward"])
+                        episode_stats["normalized_reward"].append(info["normalized_reward"])
 
         # bootstrap value if not done
         with torch.no_grad():
@@ -232,11 +238,13 @@ if __name__ == "__main__":
                     "environment/episode_return": np.mean(episode_stats["episode_return"]),
                     "environment/episode_length": np.mean(episode_stats["episode_length"]),
                     "environment/average_reward": np.mean(episode_stats["average_reward"]),
+                    "environment/normalized_reward": np.mean(episode_stats["normalized_reward"]),
                 }
             )
         episode_stats["episode_return"].clear()
         episode_stats["episode_length"].clear()
         episode_stats["average_reward"].clear()
+        episode_stats["normalized_reward"].clear()
 
     # if args.save_model:
     #     model_path = f"runs/{run_name}/{args.exp_name}.cleanrl_model"
