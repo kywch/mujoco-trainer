@@ -320,6 +320,7 @@ def train(args, env_creator_list, policy_cls, rnn_cls, wandb=None):
 
 if __name__ == "__main__":
     args, env_name, run_name = parse_args()
+    run_name = "pufferl_" + run_name
 
     # Load env binding and policy
     env_creator = environment.pufferl_env_creator(env_name, run_name, args)
@@ -332,7 +333,7 @@ if __name__ == "__main__":
     if args["mode"] == "train":
         wandb = None
         if args["track"]:
-            wandb = init_wandb(args, env_name, id=args["exp_id"])
+            wandb = init_wandb(args, run_name)
         train(args, env_creator, policy_cls, rnn_cls, wandb=wandb)
 
     elif args["mode"] in ("eval", "evaluate"):
