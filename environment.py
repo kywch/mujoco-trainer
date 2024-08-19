@@ -67,6 +67,7 @@ class EpisodeStats(gymnasium.Wrapper):
         self.reset()
 
         self.episode_results = deque(maxlen=100)
+        self.reached_horizon = deque(maxlen=100)
         self.total_reward = 0
         self.total_steps = 0
 
@@ -87,7 +88,9 @@ class EpisodeStats(gymnasium.Wrapper):
 
         if terminated or truncated:
             self.episode_results.append(self.info["episode_return"])
+            self.reached_horizon.append(truncated)
             info["last100episode_return"] = np.mean(self.episode_results)
+            info["last100episode_horizon"] = np.mean(self.reached_horizon)
             info["average_reward"] = average_reward
 
             for k, v in self.info.items():

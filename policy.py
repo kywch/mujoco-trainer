@@ -63,10 +63,12 @@ class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
         logits = torch.distributions.Normal(action_mean, action_std)
 
         if action is None:
-            action = logits.sample().view(batch, -1)
+            action = logits.sample()  # .view(batch, -1)
 
         log_probs = logits.log_prob(action.view(batch, -1)).sum(1)
-        logits_entropy = logits.entropy().view(batch, -1).sum(1)
+
+        # NOTE: entropy can go negative, when std is small (e.g. 0.1)
+        logits_entropy = logits.entropy().sum(1)  # .view(batch, -1).sum(1)
 
         return action, log_probs, logits_entropy, self.critic(x)
 

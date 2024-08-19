@@ -1,4 +1,4 @@
-from pdb import set_trace as T
+# from pdb import set_trace as T
 import numpy as np
 
 import os
@@ -199,10 +199,6 @@ def train(data):
                         obs.reshape(-1, *data.vecenv.single_observation_space.shape),
                         action=atn,
                     )
-
-                # xcxc -- why is entropy negative?
-                if entropy.mean() < 0:
-                    T()
 
                 if config.device == "cuda":
                     torch.cuda.synchronize()
