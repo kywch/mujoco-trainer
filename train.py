@@ -307,11 +307,19 @@ def train(args, env_creator_list, policy_cls, rnn_cls, wandb=None):
     data = clean_pufferl.create(train_config, vecenv, policy, wandb=wandb)
     while data.global_step < train_config.total_timesteps:
         clean_pufferl.evaluate(data)
+
+        # Stop training if the last 100 episode solved is above the threshold
+        if data.stats["last100episode_solved"] > args["train"]["stop_train_threshold"]:
+            break
+
         clean_pufferl.train(data)
 
     uptime = data.profile.uptime
+
+    # Run evaluation to get the average stats
     stats = []
-    for _ in range(10):  # extra data for sweeps
+    num_eval_epochs = args["train"]["eval_timesteps"] // data.config.batch_size
+    for _ in range(1 + num_eval_epochs):  # extra data for sweeps
         stats.append(clean_pufferl.evaluate(data)[0])
 
     clean_pufferl.close(data)
