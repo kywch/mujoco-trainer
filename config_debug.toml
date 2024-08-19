@@ -1,5 +1,5 @@
 [base]
-policy_name = "Policy"
+policy_name = "CleanRLPolicy"
 # rnn_name = "Recurrent"  # Assign a value when needed.
 
 [env]
@@ -14,9 +14,9 @@ seed = 1
 torch_deterministic = true
 cpu_offload = false
 device = "cuda"
-total_timesteps = 10_000_000
+total_timesteps = 2_000_000
 learning_rate = 3e-4
-anneal_lr = true
+anneal_lr = false
 gamma = 0.99
 gae_lambda = 0.95
 update_epochs = 10
@@ -38,6 +38,7 @@ checkpoint_interval = 1000
 batch_size = 2048
 minibatch_size = 32
 bptt_horizon = 1
+
 compile = false
 compile_mode = "reduce-overhead"
 

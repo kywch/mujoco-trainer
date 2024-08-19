@@ -20,7 +20,7 @@ def parse_args():
         "--mode",
         type=str,
         default="train",
-        choices="train eval evaluate sweep sweep-carbs autotune profile".split(),
+        choices="train eval evaluate sweep-carbs autotune profile".split(),
     )
     parser.add_argument("--eval-model-path", type=str, default=None)
     parser.add_argument(
@@ -40,6 +40,8 @@ def parse_args():
     parser.add_argument("--wandb-project", type=str, default="mujoco")
     parser.add_argument("--wandb-group", type=str, default=None)
     parser.add_argument("--track", action="store_true", help="Track on WandB")
+    parser.add_argument("--capture-video", action="store_true", help="Capture videos")
+
     args = parser.parse_known_args()[0]
 
     # Load config file
@@ -72,3 +74,19 @@ def parse_args():
     run_name = f"{env_name}_{args['train']['seed']}_{int(time.time())}"
 
     return args, env_name, run_name
+
+
+def init_wandb(args_dict, run_name, id=None, resume=True):
+    import wandb
+
+    wandb.init(
+        id=id or wandb.util.generate_id(),
+        project=args_dict["wandb_project"],
+        group=args_dict["wandb_group"],
+        allow_val_change=True,
+        save_code=True,
+        resume=resume,
+        config=args_dict,
+        name=run_name,
+    )
+    return wandb

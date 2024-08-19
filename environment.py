@@ -1,38 +1,55 @@
 # from pdb import set_trace as T
 
-# import functools
+import functools
 
 import numpy as np
 import gymnasium
 
+import pufferlib.emulation
+import pufferlib.postprocess
 
-def wrap_env(env, gamma):
-    # env = gymnasium.wrappers.FlattenObservation(env)  # deal with dm_control's Dict observation space
+
+def single_env_creator(env_name, run_name, capture_video, gamma, idx=None, pufferl=False):
+    if capture_video and idx == 0:
+        env = gymnasium.make(env_name, render_mode="rgb_array")
+        env = gymnasium.wrappers.RecordVideo(env, f"videos/{run_name}")
+    else:
+        env = gymnasium.make(env_name)
     env = EpisodeStats(env)
-    env = gymnasium.wrappers.ClipAction(env)
+    env = pufferlib.postprocess.ClipAction(env)  # NOTE: this changed actions space
     env = gymnasium.wrappers.NormalizeObservation(env)
     env = gymnasium.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
     env = gymnasium.wrappers.NormalizeReward(env, gamma=gamma)
     env = gymnasium.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+    if pufferl is True:
+        env = pufferlib.emulation.GymnasiumPufferEnv(env=env)
     return env
 
 
-def cleanrl_env_creator(env_name, idx, capture_video, run_name, gamma):
-    def thunk():
-        if capture_video and idx == 0:
-            env = gymnasium.make(env_name, render_mode="rgb_array")
-            env = gymnasium.wrappers.RecordVideo(env, f"videos/{run_name}")
-        else:
-            env = gymnasium.make(env_name)
-        env = wrap_env(env, gamma)
-        return env
+def cleanrl_env_creator(env_name, run_name, capture_video, gamma, idx):
+    kwargs = {
+        "env_name": env_name,
+        "run_name": run_name,
+        "capture_video": capture_video,
+        "gamma": gamma,
+        "idx": idx,
+        "pufferl": False,
+    }
+    return functools.partial(single_env_creator, **kwargs)
 
-    return thunk
 
-
-def pufferl_env_creator(env_name):
-    # Make a list of env fns, with the first one having the video capture
-    pass
+def pufferl_env_creator(env_name, run_name, args_dict):
+    env_fns = []
+    default_kwargs = {
+        "env_name": env_name,
+        "run_name": run_name,
+        "capture_video": args_dict["capture_video"],
+        "gamma": args_dict["train"]["gamma"],
+        "pufferl": True,
+    }
+    for idx in range(args_dict["train"]["num_envs"]):
+        env_fns.append(functools.partial(single_env_creator, **{**default_kwargs, "idx": idx}))
+    return env_fns
 
 
 ### Put the wrappers here, for now

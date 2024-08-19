@@ -14,7 +14,7 @@ from policy import CleanRLPolicy
 
 
 if __name__ == "__main__":
-    from utils import parse_args
+    from utils import parse_args, init_wandb
 
     args_dict, env_name, run_name = parse_args()
     run_name = "cleanrl_" + run_name
@@ -25,6 +25,7 @@ if __name__ == "__main__":
     args.wandb_project = args_dict["wandb_project"]
     args.wandb_group = args_dict["wandb_group"]
     args.track = args_dict["track"]
+    args.capture_video = args_dict["capture_video"]
     args.cuda = args_dict["train"]["device"] == "cuda"
     if not hasattr(args, "target_kl"):
         args.target_kl = None
@@ -38,17 +39,9 @@ if __name__ == "__main__":
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
 
+    wandb = None
     if args.track:
-        import wandb
-
-        wandb.init(
-            project=args.wandb_project,
-            group=args.wandb_group,
-            config=vars(args),
-            name=run_name,
-            monitor_gym=True,
-            save_code=True,
-        )
+        wandb = init_wandb(args_dict, run_name)
     episode_stats = {"episode_return": [], "episode_length": []}
 
     # TRY NOT TO MODIFY: seeding
@@ -62,7 +55,7 @@ if __name__ == "__main__":
     # env setup
     envs = gymnasium.vector.SyncVectorEnv(
         [
-            cleanrl_env_creator(args.env_id, i, args.capture_video, run_name, args.gamma)
+            cleanrl_env_creator(args.env_id, run_name, args.capture_video, args.gamma, i)
             for i in range(args.num_envs)
         ]
     )
@@ -221,7 +214,7 @@ if __name__ == "__main__":
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
         print(f"Steps: {global_step}, SPS: {int(global_step / (time.time() - start_time))}")
-        if args.track:
+        if args.track and wandb is not None:
             wandb.log(
                 {
                     "0verview/agent_steps": global_step,
@@ -276,5 +269,5 @@ if __name__ == "__main__":
     #         )
 
     envs.close()
-    if args.track:
+    if args.track and wandb is not None:
         wandb.finish()
