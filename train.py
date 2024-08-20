@@ -144,7 +144,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
             "train", "update_epochs", "linear", sweep_parameters, search_center=3, is_integer=True
         ),
         carbs_param("train", "clip_coef", "logit", sweep_parameters, search_center=0.1),
-        carbs_param("train", "vf_coef", "logit", sweep_parameters, search_center=0.5),
+        carbs_param("train", "vf_coef", "linear", sweep_parameters, search_center=0.5),
         carbs_param("train", "vf_clip_coef", "logit", sweep_parameters, search_center=0.1),
         carbs_param("train", "max_grad_norm", "linear", sweep_parameters, search_center=0.5),
         carbs_param("train", "ent_coef", "log", sweep_parameters, search_center=0.01),
@@ -173,6 +173,10 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         better_direction_sign=1,
         is_wandb_logging_enabled=False,
         resample_frequency=0,
+        num_random_samples=2,
+        # NOTE: play with these to vary the training steps
+        min_pareto_cost_fraction=0.3,
+        max_suggestion_cost=600,  # Shoot for 10 mins
     )
     carbs = CARBS(carbs_params, param_spaces)
 
@@ -182,6 +186,8 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         print("--------------------------------------------------------------------------------")
         wandb = init_wandb(args, env_name, id=args["exp_id"])
         wandb.config.__dict__["_locked"] = {}
+
+        print("Getting suggestion...")
         orig_suggestion = carbs.suggest().suggestion
         suggestion = orig_suggestion.copy()
         print("Suggestion:", suggestion)
@@ -227,6 +233,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
                 input=orig_suggestion,
                 output=observed_value,
                 cost=uptime,
+                is_failure=not is_success,
             )
         )
 

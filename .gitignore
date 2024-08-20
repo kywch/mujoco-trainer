@@ -3,6 +3,7 @@ experiments/
 *.profile
 runs/
 wandb/
+checkpoints/
 
 # VSCode
 .vscode/

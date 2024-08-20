@@ -43,8 +43,8 @@ compile = false
 compile_mode = "reduce-overhead"
 
 # Train stop criteria
-# (1) Wall time
-train_time_budget = 30  # seconds
+# (1) Max wall time
+train_time_budget = 1800  # seconds
 
 # (2) If last 100 episode solved is above this threshold, stop training
 stop_train_threshold = 0.9
@@ -65,6 +65,10 @@ name = "environment/episode_return"
 [sweep.parameters.train.parameters.num_envs]
 min = 1
 max = 192
+
+[sweep.parameters.train.parameters.total_timesteps]
+min = 1_000_000
+max = 100_000_000
 
 [sweep.parameters.train.parameters.learning_rate]
 min = 1e-5
@@ -88,7 +92,7 @@ max = 1.0
 
 [sweep.parameters.train.parameters.vf_coef]
 min = 0.0
-max = 1.0
+max = 10.0
 
 [sweep.parameters.train.parameters.vf_clip_coef]
 min = 0.0
@@ -104,11 +108,11 @@ max = 1e-1
 
 [sweep.parameters.train.parameters.batch_size]
 min = 32768
-max = 524288
+max = 262144
 
 [sweep.parameters.train.parameters.minibatch_size]
 min = 256
 max = 32768
 
 [sweep.parameters.train.parameters.bptt_horizon]
-values = [1, 2, 4, 8, 16, 32, 64]
+values = [1, 2, 4, 8, 16, 32]
