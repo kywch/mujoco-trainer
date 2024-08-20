@@ -28,14 +28,16 @@ torch.set_float32_matmul_precision("high")
 # pyximport.install(setup_args={"include_dirs": np.get_include()})
 
 
-def create(config, vecenv, policy, optimizer=None, wandb=None):
+def create(config, vecenv, policy, optimizer=None, wandb=None, skip_dash=False):
     seed_everything(config.seed, config.torch_deterministic)
     profile = Profile()
     losses = make_losses()
 
     utilization = Utilization()
     msg = f"Model Size: {abbreviate(count_params(policy))} parameters"
-    print_dashboard(config.env, utilization, 0, 0, profile, losses, {}, msg, clear=True)
+    print_dashboard(
+        config.env, utilization, 0, 0, profile, losses, {}, msg, clear=True, skip_dash=skip_dash
+    )
 
     vecenv.async_reset(config.seed)
     obs_shape = vecenv.single_observation_space.shape
@@ -80,6 +82,7 @@ def create(config, vecenv, policy, optimizer=None, wandb=None):
         msg=msg,
         last_log_time=0,
         utilization=utilization,
+        skip_dash=skip_dash,
     )
 
 
@@ -285,6 +288,7 @@ def train(data):
                 data.losses,
                 data.stats,
                 data.msg,
+                skip_dash=data.skip_dash,
             )
 
             if (
@@ -727,7 +731,16 @@ def print_dashboard(
     msg,
     clear=False,
     max_stats=[0],
+    skip_dash=False,
 ):
+    if skip_dash:
+        print(f"Steps: {global_step}, SPS: {profile.SPS:d}")
+        if "last100episode_return" in stats:
+            print(f"Last 100 episode return: {stats['last100episode_return']:d}")
+            print(f"Last 100 episode solved: {stats['last100episode_solved']:.3f}")
+            print()
+        return
+
     console = Console()
     if clear:
         console.clear()

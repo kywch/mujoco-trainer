@@ -1,0 +1,115 @@
+[base]
+policy_name = "Policy"
+rnn_name = "Recurrent"  # Assign a value when needed.
+
+[env]
+
+[policy]
+
+[rnn]
+
+# Refer https://github.com/MyoHub/myosuite/blob/main/myosuite/agents/config_mujoco.yaml
+[train]
+seed = 1
+torch_deterministic = true
+cpu_offload = false
+device = "cuda"
+learning_rate = 3e-4
+anneal_lr = false
+gamma = 0.99
+gae_lambda = 0.95
+update_epochs = 3
+norm_adv = true
+clip_coef = 0.2
+clip_vloss = true
+vf_coef = 0.5
+vf_clip_coef = 0.2
+max_grad_norm = 0.5
+ent_coef = 0.0
+# target_kl = None  # Assign a value when needed.
+
+num_envs = 48
+num_workers = 24
+env_batch_size = 24
+zero_copy = false
+data_dir = "experiments"
+checkpoint_interval = 1000
+batch_size = 2048
+minibatch_size = 512
+bptt_horizon = 16
+
+# Check if the results are the same before compiling
+compile = false
+compile_mode = "reduce-overhead"
+
+
+# Train stop criteria
+# (1) Wall time
+train_time_budget = 600  # seconds
+
+# (2) If last 100 episode solved is above this threshold, stop training
+stop_train_threshold = 0.9
+eval_timesteps = 60_000
+
+# (3) Total timesteps
+total_timesteps = 100_000_000
+
+
+[sweep]
+method = "bayes"
+name = "sweep"
+
+[sweep.metric]
+goal = "maximize"
+name = "environment/episode_return"
+
+[sweep.parameters.train.parameters.num_envs]
+min = 1
+max = 192
+
+[sweep.parameters.train.parameters.learning_rate]
+min = 1e-5
+max = 1e-1
+
+[sweep.parameters.train.parameters.gamma]
+min = 0.0
+max = 1.0
+
+[sweep.parameters.train.parameters.gae_lambda]
+min = 0.0
+max = 1.0
+
+[sweep.parameters.train.parameters.update_epochs]
+min = 1
+max = 10
+
+[sweep.parameters.train.parameters.clip_coef]
+min = 0.0
+max = 1.0
+
+[sweep.parameters.train.parameters.vf_coef]
+min = 0.0
+max = 1.0
+
+[sweep.parameters.train.parameters.vf_clip_coef]
+min = 0.0
+max = 1.0
+
+[sweep.parameters.train.parameters.max_grad_norm]
+min = 0.0
+max = 10.0
+
+[sweep.parameters.train.parameters.ent_coef]
+min = 1e-5
+max = 1e-1
+
+[sweep.parameters.train.parameters.batch_size]
+min = 32768
+max = 524288
+
+[sweep.parameters.train.parameters.minibatch_size]
+min = 4096
+max = 65536
+
+[sweep.parameters.train.parameters.bptt_horizon]
+values = [1, 2, 4, 8, 16, 32, 64]

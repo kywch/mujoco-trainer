@@ -56,6 +56,9 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         possible_results = floor(log(x, 2)), ceil(log(x, 2))
         return int(2 ** min(possible_results, key=lambda z: abs(x - 2**z)))
 
+    def closest_multiple(x, base):
+        return base * ceil(x / base)
+
     def carbs_param(
         group,
         name,
@@ -103,18 +106,12 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
     if not os.path.exists("checkpoints"):
         os.system("mkdir checkpoints")
 
-    import wandb
-
-    sweep_id = wandb.sweep(
-        sweep=args["sweep"],
-        project="carbs",
-    )
     target_metric = args["sweep"]["metric"]["name"].split("/")[-1]
     sweep_parameters = args["sweep"]["parameters"]
     # wandb_env_params = sweep_parameters['env']['parameters']
     # wandb_policy_params = sweep_parameters['policy']['parameters']
 
-    # Must be hardcoded and match wandb sweep space for now
+    # total_timesteps: Must be hardcoded and match wandb sweep space for now
     param_spaces = []
     if "total_timesteps" in sweep_parameters["train"]["parameters"]:
         time_param = sweep_parameters["train"]["parameters"]["total_timesteps"]
@@ -136,51 +133,10 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
     minibatch_param = sweep_parameters["train"]["parameters"]["minibatch_size"]
     default_minibatch = (minibatch_param["max"] - minibatch_param["min"]) // 2
 
-    if "env" in sweep_parameters:
-        env_params = sweep_parameters["env"]["parameters"]
-
-        # MOBA
-        if "reward_death" in env_params:
-            param_spaces.append(
-                carbs_param("env", "reward_death", "linear", sweep_parameters, search_center=-1.0)
-            )
-        if "reward_xp" in env_params:
-            param_spaces.append(
-                carbs_param("env", "reward_xp", "linear", sweep_parameters, search_center=0.006)
-            )
-        if "reward_distance" in env_params:
-            param_spaces.append(
-                carbs_param(
-                    "env", "reward_distance", "linear", sweep_parameters, search_center=0.05
-                )
-            )
-        if "reward_tower" in env_params:
-            param_spaces.append(
-                carbs_param("env", "reward_tower", "linear", sweep_parameters, search_center=3.0)
-            )
-
-        # Atari
-        if "frameskip" in env_params:
-            param_spaces.append(
-                carbs_param(
-                    "env", "frameskip", "linear", sweep_parameters, search_center=4, is_integer=True
-                )
-            )
-        if "repeat_action_probability" in env_params:
-            param_spaces.append(
-                carbs_param(
-                    "env",
-                    "repeat_action_probability",
-                    "logit",
-                    sweep_parameters,
-                    search_center=0.25,
-                )
-            )
-
     param_spaces += [
-        # carbs_param('cnn_channels', 'linear', wandb_policy_params, search_center=32, is_integer=True),
-        # carbs_param('hidden_size', 'linear', wandb_policy_params, search_center=128, is_integer=True),
-        # carbs_param('vision', 'linear', search_center=5, is_integer=True),
+        carbs_param(
+            "train", "num_envs", "linear", sweep_parameters, search_center=72, is_integer=True
+        ),
         carbs_param("train", "learning_rate", "log", sweep_parameters, search_center=1e-3),
         carbs_param("train", "gamma", "logit", sweep_parameters, search_center=0.95),
         carbs_param("train", "gae_lambda", "logit", sweep_parameters, search_center=0.90),
@@ -226,35 +182,33 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         orig_suggestion = carbs.suggest().suggestion
         suggestion = orig_suggestion.copy()
         print("Suggestion:", suggestion)
-        # cnn_channels = suggestion.pop('cnn_channels')
-        # hidden_size = suggestion.pop('hidden_size')
-        # vision = suggestion.pop('vision')
-        # wandb.config.env['vision'] = vision
-        # wandb.config.policy['cnn_channels'] = cnn_channels
-        # wandb.config.policy['hidden_size'] = hidden_size
         train_suggestion = {
             k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("train-")
         }
-        env_suggestion = {k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("env-")}
         args["train"].update(train_suggestion)
         args["train"]["batch_size"] = closest_power(train_suggestion["batch_size"])
         args["train"]["minibatch_size"] = closest_power(train_suggestion["minibatch_size"])
         args["train"]["bptt_horizon"] = closest_power(train_suggestion["bptt_horizon"])
+        num_env_suggestion = closest_multiple(
+            train_suggestion["num_envs"], 24
+        )  # Hardcoded, 24 cores
+        args["train"]["num_envs"] = num_env_suggestion
+        args["train"]["env_batch_size"] = num_env_suggestion
 
+        env_suggestion = {k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("env-")}
         args["env"].update(env_suggestion)
+
         args["track"] = True
         wandb.config.update({"train": args["train"]}, allow_val_change=True)
 
-        # args.env.__dict__['vision'] = vision
-        # args['policy']['cnn_channels'] = cnn_channels
-        # args['policy']['hidden_size'] = hidden_size
-        # args['rnn']['input_size'] = hidden_size
-        # args['rnn']['hidden_size'] = hidden_size
         print(wandb.config.train)
-        print(wandb.config.env)
-        print(wandb.config.policy)
+        # print(wandb.config.env)
+        # print(wandb.config.policy)
         try:
-            stats, uptime = train(args, make_env, policy_cls, rnn_cls, wandb)
+            env_creator_list = make_env * num_env_suggestion
+            stats, uptime = train(
+                args, env_creator_list, policy_cls, rnn_cls, wandb, skip_dash=True
+            )
         except Exception as e:  # noqa
             is_failure = True  # noqa
             import traceback
@@ -276,10 +230,20 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
                 )
             )
 
-    wandb.agent(sweep_id, main, count=500)
+    # For debugging
+    # main()
+
+    # Run sweep
+    import wandb
+
+    sweep_id = wandb.sweep(
+        sweep=args["sweep"],
+        project="carbs",
+    )
+    wandb.agent(sweep_id, main, count=100)
 
 
-def train(args, env_creator_list, policy_cls, rnn_cls, wandb=None):
+def train(args, env_creator_list, policy_cls, rnn_cls, wandb=None, skip_dash=False):
     if args["vec"] == "serial":
         vec = pufferlib.vector.Serial
     elif args["vec"] == "multiprocessing":
@@ -304,12 +268,16 @@ def train(args, env_creator_list, policy_cls, rnn_cls, wandb=None):
         env=env_name,
         exp_id=args["exp_id"] or env_name + "-" + str(uuid.uuid4())[:8],
     )
-    data = clean_pufferl.create(train_config, vecenv, policy, wandb=wandb)
+    data = clean_pufferl.create(train_config, vecenv, policy, wandb=wandb, skip_dash=skip_dash)
     while data.global_step < train_config.total_timesteps:
         clean_pufferl.evaluate(data)
 
         # Stop training if the last 100 episode solved is above the threshold
-        if data.stats["last100episode_solved"] > args["train"]["stop_train_threshold"]:
+        if data.stats["last100episode_solved"] > train_config.stop_train_threshold:
+            break
+
+        # Or, the time budget is up
+        if data.profile.uptime > train_config.train_time_budget:
             break
 
         clean_pufferl.train(data)
@@ -318,7 +286,7 @@ def train(args, env_creator_list, policy_cls, rnn_cls, wandb=None):
 
     # Run evaluation to get the average stats
     stats = []
-    num_eval_epochs = args["train"]["eval_timesteps"] // data.config.batch_size
+    num_eval_epochs = train_config.eval_timesteps // train_config.batch_size
     for _ in range(1 + num_eval_epochs):  # extra data for sweeps
         stats.append(clean_pufferl.evaluate(data)[0])
 
