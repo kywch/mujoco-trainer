@@ -176,7 +176,10 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
     )
     carbs = CARBS(carbs_params, param_spaces)
 
-    def main():
+    def run_sweep_session():
+        print("--------------------------------------------------------------------------------")
+        print("Starting a new session...")
+        print("--------------------------------------------------------------------------------")
         wandb = init_wandb(args, env_name, id=args["exp_id"])
         wandb.config.__dict__["_locked"] = {}
         orig_suggestion = carbs.suggest().suggestion
@@ -226,7 +229,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
             )
 
     # For debugging
-    # main()
+    # run_sweep_session()
 
     # Run sweep
     import wandb
@@ -235,7 +238,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         sweep=args["sweep"],
         project="carbs",
     )
-    wandb.agent(sweep_id, main, count=100)
+    wandb.agent(sweep_id, run_sweep_session, count=100)
 
 
 def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):

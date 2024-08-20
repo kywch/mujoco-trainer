@@ -44,7 +44,7 @@ compile_mode = "reduce-overhead"
 
 # Train stop criteria
 # (1) Wall time
-train_time_budget = 600  # seconds
+train_time_budget = 30  # seconds
 
 # (2) If last 100 episode solved is above this threshold, stop training
 stop_train_threshold = 0.9
