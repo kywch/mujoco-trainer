@@ -135,7 +135,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
 
     param_spaces += [
         carbs_param(
-            "train", "num_envs", "linear", sweep_parameters, search_center=48, is_integer=True
+            "train", "num_envs", "linear", sweep_parameters, search_center=32, is_integer=True
         ),
         carbs_param("train", "learning_rate", "log", sweep_parameters, search_center=1e-3),
         carbs_param("train", "gamma", "logit", sweep_parameters, search_center=0.95),
@@ -199,8 +199,8 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         args["train"]["minibatch_size"] = closest_power(train_suggestion["minibatch_size"])
         args["train"]["bptt_horizon"] = closest_power(train_suggestion["bptt_horizon"])
         args["train"]["num_envs"] = closest_multiple(
-            train_suggestion["num_envs"], 24
-        )  # Hardcoded, 24 cores
+            train_suggestion["num_envs"], args["train"]["num_workers"]
+        )
 
         env_suggestion = {k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("env-")}
         args["env"].update(env_suggestion)

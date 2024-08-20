@@ -29,8 +29,8 @@ ent_coef = 0.0
 # target_kl = None  # Assign a value when needed.
 
 num_envs = 48
-num_workers = 24
-env_batch_size = 24
+num_workers = 16
+env_batch_size = 16
 zero_copy = false
 data_dir = "experiments"
 checkpoint_interval = 1000
