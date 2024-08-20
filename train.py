@@ -141,7 +141,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         carbs_param("train", "gamma", "logit", sweep_parameters, search_center=0.95),
         carbs_param("train", "gae_lambda", "logit", sweep_parameters, search_center=0.90),
         carbs_param(
-            "train", "update_epochs", "linear", sweep_parameters, search_center=1, is_integer=True
+            "train", "update_epochs", "linear", sweep_parameters, search_center=3, is_integer=True
         ),
         carbs_param("train", "clip_coef", "logit", sweep_parameters, search_center=0.1),
         carbs_param("train", "vf_coef", "logit", sweep_parameters, search_center=0.5),
@@ -189,11 +189,9 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         args["train"]["batch_size"] = closest_power(train_suggestion["batch_size"])
         args["train"]["minibatch_size"] = closest_power(train_suggestion["minibatch_size"])
         args["train"]["bptt_horizon"] = closest_power(train_suggestion["bptt_horizon"])
-        num_env_suggestion = closest_multiple(
+        args["train"]["num_envs"] = closest_multiple(
             train_suggestion["num_envs"], 24
         )  # Hardcoded, 24 cores
-        args["train"]["num_envs"] = num_env_suggestion
-        args["train"]["env_batch_size"] = num_env_suggestion
 
         env_suggestion = {k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("env-")}
         args["env"].update(env_suggestion)
