@@ -42,7 +42,6 @@ bptt_horizon = 16
 compile = false
 compile_mode = "reduce-overhead"
 
-
 # Train stop criteria
 # (1) Wall time
 train_time_budget = 600  # seconds

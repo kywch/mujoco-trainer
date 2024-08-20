@@ -205,10 +205,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         # print(wandb.config.env)
         # print(wandb.config.policy)
         try:
-            env_creator_list = make_env * num_env_suggestion
-            stats, uptime = train(
-                args, env_creator_list, policy_cls, rnn_cls, wandb, skip_dash=True
-            )
+            stats, uptime = train(args, make_env, policy_cls, rnn_cls, wandb, skip_dash=True)
         except Exception as e:  # noqa
             is_failure = True  # noqa
             import traceback
@@ -243,7 +240,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
     wandb.agent(sweep_id, main, count=100)
 
 
-def train(args, env_creator_list, policy_cls, rnn_cls, wandb=None, skip_dash=False):
+def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
     if args["vec"] == "serial":
         vec = pufferlib.vector.Serial
     elif args["vec"] == "multiprocessing":
@@ -251,11 +248,19 @@ def train(args, env_creator_list, policy_cls, rnn_cls, wandb=None, skip_dash=Fal
     else:
         raise ValueError("Invalid --vector (serial/multiprocessing).")
 
-    num_envs = args["train"]["num_envs"]
+    env_args = None
+    env_kwargs = args["env"]
+    if args["capture_video"] is True:
+        assert isinstance(env_creator, list), "Video capture requires the env_creator to be a list"
+        num_envs = args["train"]["num_envs"]
+        assert len(env_creator) == num_envs
+        env_args = [[]] * num_envs
+        env_kwargs = [args["env"]] * num_envs
+
     vecenv = pufferlib.vector.make(
-        env_creator_list,
-        env_args=[[]] * num_envs,  # NOTE: these are hack to make env_creator_list work
-        env_kwargs=[args["env"]] * num_envs,
+        env_creator,
+        env_args=env_args,
+        env_kwargs=env_kwargs,
         num_envs=args["train"]["num_envs"],
         num_workers=args["train"]["num_workers"],
         batch_size=args["train"]["env_batch_size"],
@@ -325,6 +330,8 @@ if __name__ == "__main__":
         )
 
     elif args["mode"] == "sweep-carbs":
+        args["capture_video"] = False
+        env_creator = environment.pufferl_env_creator(env_name, run_name, args)
         sweep_carbs(args, env_name, env_creator, policy_cls, rnn_cls)
 
     elif args["mode"] == "autotune":

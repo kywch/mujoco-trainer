@@ -10,9 +10,7 @@ import pufferlib.emulation
 import pufferlib.postprocess
 
 
-def single_env_creator(
-    env_name, run_name, capture_video, gamma, idx=None, pufferl=False, center_reward=True
-):
+def single_env_creator(env_name, run_name, capture_video, gamma, idx=None, pufferl=False):
     if capture_video and idx == 0:
         env = gymnasium.make(env_name, render_mode="rgb_array")
         env = gymnasium.wrappers.RecordVideo(env, f"videos/{run_name}")
@@ -42,7 +40,6 @@ def cleanrl_env_creator(env_name, run_name, capture_video, gamma, idx):
 
 
 def pufferl_env_creator(env_name, run_name, args_dict):
-    env_fns = []
     default_kwargs = {
         "env_name": env_name,
         "run_name": run_name,
@@ -50,9 +47,15 @@ def pufferl_env_creator(env_name, run_name, args_dict):
         "gamma": args_dict["train"]["gamma"],
         "pufferl": True,
     }
-    for idx in range(args_dict["train"]["num_envs"]):
-        env_fns.append(functools.partial(single_env_creator, **{**default_kwargs, "idx": idx}))
-    return env_fns
+
+    if args_dict["capture_video"] is False:
+        return functools.partial(single_env_creator, **default_kwargs)
+
+    # NOTE: When capturing videos, we need to create multiple envs with one video env
+    return [
+        functools.partial(single_env_creator, **{**default_kwargs, "idx": idx})
+        for idx in range(args_dict["train"]["num_envs"])
+    ]
 
 
 ### Put the wrappers here, for now

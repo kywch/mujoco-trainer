@@ -7,7 +7,7 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Training arguments for myosuite", add_help=False)
-    parser.add_argument("-c", "--config", default="config_debug.toml")
+    parser.add_argument("-c", "--config", default="config.toml")
     parser.add_argument(
         "-e",
         "--env-name",
@@ -19,7 +19,7 @@ def parse_args():
     parser.add_argument(
         "--mode",
         type=str,
-        default="train",
+        default="sweep-carbs",
         choices="train eval evaluate sweep-carbs autotune profile".split(),
     )
     parser.add_argument("--eval-model-path", type=str, default=None)
