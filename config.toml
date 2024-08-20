@@ -1,6 +1,6 @@
 [base]
-policy_name = "Policy"
-rnn_name = "Recurrent"  # Assign a value when needed.
+policy_name = "CleanRLPolicy"
+# rnn_name = "Recurrent"  # Assign a value when needed.
 
 [env]
 
