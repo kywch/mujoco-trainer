@@ -135,7 +135,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
 
     param_spaces += [
         carbs_param(
-            "train", "num_envs", "linear", sweep_parameters, search_center=72, is_integer=True
+            "train", "num_envs", "linear", sweep_parameters, search_center=48, is_integer=True
         ),
         carbs_param("train", "learning_rate", "log", sweep_parameters, search_center=1e-3),
         carbs_param("train", "gamma", "logit", sweep_parameters, search_center=0.95),
@@ -221,6 +221,12 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
             traceback.print_exc()
 
         # NOTE: What happens if training fails?
+        """
+        A run should be reported as a failure if the hyperparameters suggested by CARBS 
+        caused the failure, for example a batch size that is too large that caused an OOM failure. 
+        If a failure occurs that is not related to the hyperparameters, it is better to forget 
+        the suggestion or retry it. Report a failure by making an ObservationInParam with is_failure=True
+        """
         observed_value = [s[target_metric] for s in stats if target_metric in s]
         if len(observed_value) > 0:
             observed_value = np.mean(observed_value)
@@ -247,7 +253,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         sweep=args["sweep"],
         project="carbs",
     )
-    wandb.agent(sweep_id, run_sweep_session, count=100)
+    wandb.agent(sweep_id, run_sweep_session, count=args["train"]["num_sweeps"])
 
 
 def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):

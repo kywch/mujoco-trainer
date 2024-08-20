@@ -54,6 +54,10 @@ eval_timesteps = 60_000
 total_timesteps = 100_000_000
 
 
+### Sweep related parameters
+
+num_sweeps = 500
+
 [sweep]
 method = "bayes"
 name = "sweep"
