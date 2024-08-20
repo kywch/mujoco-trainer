@@ -205,6 +205,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         print(wandb.config.train)
         # print(wandb.config.env)
         # print(wandb.config.policy)
+        stats = {}
         try:
             stats, uptime = train(args, make_env, policy_cls, rnn_cls, wandb, skip_dash=True)
         except Exception as e:  # noqa
@@ -212,21 +213,22 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
             import traceback
 
             traceback.print_exc()
-        else:
-            observed_value = [s[target_metric] for s in stats if target_metric in s]
-            if len(observed_value) > 0:
-                observed_value = np.mean(observed_value)
-            else:
-                observed_value = 0
 
-            print(f"Observed value: {observed_value}")
-            obs_out = carbs.observe(  # noqa
-                ObservationInParam(
-                    input=orig_suggestion,
-                    output=observed_value,
-                    cost=uptime,
-                )
+        # NOTE: What happens if training fails?
+        observed_value = [s[target_metric] for s in stats if target_metric in s]
+        if len(observed_value) > 0:
+            observed_value = np.mean(observed_value)
+        else:
+            observed_value = 0
+
+        print(f"Train success: {not is_failure}, Observed value: {observed_value}")
+        obs_out = carbs.observe(  # noqa
+            ObservationInParam(
+                input=orig_suggestion,
+                output=observed_value,
+                cost=uptime,
             )
+        )
 
     # For debugging
     # run_sweep_session()
