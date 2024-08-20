@@ -233,7 +233,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         else:
             observed_value = 0
 
-        print(f"Train success: {is_success}, Observed value: {observed_value}")
+        print(f"\n\nTrain success: {is_success}, Observed value: {observed_value}\n\n")
         obs_out = carbs.observe(  # noqa
             ObservationInParam(
                 input=orig_suggestion,
