@@ -294,7 +294,7 @@ def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
         clean_pufferl.evaluate(data)
 
         # Stop training if the last 100 episode solved is above the threshold
-        if data.stats["last100episode_solved"] > train_config.stop_train_threshold:
+        if data.stats["last30episode_solved"] > train_config.stop_train_threshold:
             break
 
         # Or, the time budget is up

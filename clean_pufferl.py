@@ -737,9 +737,9 @@ def print_dashboard(
         print(
             f"Steps: {global_step}, SPS: {int(profile.SPS)}, Remaining: {int(profile.remaining)} s"
         )
-        if "last100episode_return" in stats:
-            print(f"Last 100 episode return: {int(stats['last100episode_return'])}")
-            print(f"Last 100 episode solved: {stats['last100episode_solved']:.3f}")
+        if "last30episode_return" in stats:
+            print(f"Last 100 episode return: {int(stats['last30episode_return'])}")
+            print(f"Last 100 episode solved: {stats['last30episode_solved']:.3f}")
             print()
         return
 
