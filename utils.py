@@ -12,7 +12,7 @@ def parse_args():
         "-e",
         "--env-name",
         type=str,
-        default="Hopper-v4",
+        default="Ant-v4",
         help="Name of specific environment to run",
     )
 
