@@ -143,9 +143,9 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         carbs_param(
             "train", "update_epochs", "linear", sweep_parameters, search_center=5, is_integer=True
         ),
-        carbs_param("train", "clip_coef", "logit", sweep_parameters, search_center=0.1),
+        carbs_param("train", "clip_coef", "logit", sweep_parameters, search_center=0.3),
         carbs_param("train", "vf_coef", "linear", sweep_parameters, search_center=1),
-        carbs_param("train", "vf_clip_coef", "logit", sweep_parameters, search_center=0.1),
+        carbs_param("train", "vf_clip_coef", "logit", sweep_parameters, search_center=0.2),
         carbs_param("train", "max_grad_norm", "linear", sweep_parameters, search_center=0.5),
         carbs_param("train", "ent_coef", "log", sweep_parameters, search_center=0.01),
         carbs_param(
@@ -165,7 +165,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
             is_integer=True,
         ),
         carbs_param(
-            "train", "bptt_horizon", "log", sweep_parameters, search_center=16, is_integer=True
+            "train", "bptt_horizon", "log", sweep_parameters, search_center=4, is_integer=True
         ),
     ]
 
@@ -173,7 +173,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         better_direction_sign=1,
         is_wandb_logging_enabled=False,
         resample_frequency=0,
-        num_random_samples=len(param_spaces),
+        num_random_samples=2,  # random sampling doesn't seem to work
         # NOTE: play with these to vary the training steps
         min_pareto_cost_fraction=0.3,
         max_suggestion_cost=600,  # Shoot for 10 mins
