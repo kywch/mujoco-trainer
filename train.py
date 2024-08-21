@@ -141,10 +141,10 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         carbs_param("train", "gamma", "logit", sweep_parameters, search_center=0.95),
         carbs_param("train", "gae_lambda", "logit", sweep_parameters, search_center=0.90),
         carbs_param(
-            "train", "update_epochs", "linear", sweep_parameters, search_center=3, is_integer=True
+            "train", "update_epochs", "linear", sweep_parameters, search_center=5, is_integer=True
         ),
         carbs_param("train", "clip_coef", "logit", sweep_parameters, search_center=0.1),
-        carbs_param("train", "vf_coef", "linear", sweep_parameters, search_center=0.5),
+        carbs_param("train", "vf_coef", "linear", sweep_parameters, search_center=1),
         carbs_param("train", "vf_clip_coef", "logit", sweep_parameters, search_center=0.1),
         carbs_param("train", "max_grad_norm", "linear", sweep_parameters, search_center=0.5),
         carbs_param("train", "ent_coef", "log", sweep_parameters, search_center=0.01),
@@ -173,7 +173,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         better_direction_sign=1,
         is_wandb_logging_enabled=False,
         resample_frequency=0,
-        num_random_samples=2,
+        num_random_samples=len(param_spaces),
         # NOTE: play with these to vary the training steps
         min_pareto_cost_fraction=0.3,
         max_suggestion_cost=600,  # Shoot for 10 mins
