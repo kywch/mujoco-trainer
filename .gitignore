@@ -4,6 +4,7 @@ experiments/
 runs/
 wandb/
 checkpoints/
+videos/
 
 # VSCode
 .vscode/

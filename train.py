@@ -127,8 +127,8 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
             )
         )
 
-    batch_param = sweep_parameters["train"]["parameters"]["batch_size"]
-    default_batch = (batch_param["max"] - batch_param["min"]) // 2
+    # batch_param = sweep_parameters["train"]["parameters"]["batch_size"]
+    # default_batch = (batch_param["max"] - batch_param["min"]) // 2
 
     minibatch_param = sweep_parameters["train"]["parameters"]["minibatch_size"]
     default_minibatch = (minibatch_param["max"] - minibatch_param["min"]) // 2
@@ -153,7 +153,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
             "batch_size",
             "log",
             sweep_parameters,
-            search_center=default_batch,
+            search_center=8192,
             is_integer=True,
         ),
         carbs_param(
@@ -198,9 +198,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         args["train"]["batch_size"] = closest_power(train_suggestion["batch_size"])
         args["train"]["minibatch_size"] = closest_power(train_suggestion["minibatch_size"])
         args["train"]["bptt_horizon"] = closest_power(train_suggestion["bptt_horizon"])
-        args["train"]["num_envs"] = closest_multiple(
-            train_suggestion["num_envs"], args["train"]["num_workers"]
-        )
+        args["train"]["num_envs"] = closest_power(train_suggestion["num_envs"])  # 16, 32, 64
 
         env_suggestion = {k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("env-")}
         args["env"].update(env_suggestion)
@@ -292,10 +290,6 @@ def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
     data = clean_pufferl.create(train_config, vecenv, policy, wandb=wandb, skip_dash=skip_dash)
     while data.global_step < train_config.total_timesteps:
         clean_pufferl.evaluate(data)
-
-        # Stop training if the last 100 episode solved is above the threshold
-        if data.stats["last30episode_solved"] > train_config.stop_train_threshold:
-            break
 
         # Or, the time budget is up
         if data.profile.uptime > train_config.train_time_budget:

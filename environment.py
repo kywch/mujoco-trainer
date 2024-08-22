@@ -91,13 +91,8 @@ class EpisodeStats(gymnasium.Wrapper):
 
         if terminated or truncated:
             self.episode_results.append(self.info["episode_return"])
-            self.reached_horizon.append(truncated)
             info["last30episode_return"] = np.mean(self.episode_results)
             info["average_reward"] = average_reward
-
-            # NOTE: Define solved = true if the episode is truncated
-            # Keeping track of the last 100 episode solved
-            info["last30episode_solved"] = np.mean(self.reached_horizon)
 
             for k, v in self.info.items():
                 info[k] = v

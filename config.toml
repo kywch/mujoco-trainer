@@ -28,7 +28,7 @@ max_grad_norm = 0.5
 ent_coef = 0.0
 # target_kl = None  # Assign a value when needed.
 
-num_envs = 48
+num_envs = 32
 num_workers = 16
 env_batch_size = 16
 zero_copy = false
@@ -42,15 +42,14 @@ bptt_horizon = 16
 compile = false
 compile_mode = "reduce-overhead"
 
+# Extra steps to evaluate the agent after training
+eval_timesteps = 320_000
+
 # Train stop criteria
 # (1) Max wall time
 train_time_budget = 1800  # seconds
 
-# (2) If last 100 episode solved is above this threshold, stop training
-stop_train_threshold = 0.9
-eval_timesteps = 320_000
-
-# (3) Total timesteps
+# (2) Total timesteps
 total_timesteps = 100_000_000
 
 
@@ -67,8 +66,8 @@ goal = "maximize"
 name = "environment/episode_return"
 
 [sweep.parameters.train.parameters.num_envs]
-min = 1
-max = 192
+min = 16
+max = 64
 
 [sweep.parameters.train.parameters.total_timesteps]
 min = 1_000_000
@@ -107,16 +106,16 @@ min = 0.0
 max = 10.0
 
 [sweep.parameters.train.parameters.ent_coef]
-min = 1e-5
-max = 0.03
+min = 1e-4
+max = 0.05
 
 [sweep.parameters.train.parameters.batch_size]
-min = 32768
+min = 8192
 max = 262144
 
 [sweep.parameters.train.parameters.minibatch_size]
 min = 256
-max = 32768
+max = 8192
 
 [sweep.parameters.train.parameters.bptt_horizon]
 values = [1, 2, 4, 8, 16, 32]
