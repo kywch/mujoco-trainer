@@ -212,7 +212,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         stats, uptime, is_success = {}, 0, False
         try:
             stats, uptime = train(args, make_env, policy_cls, rnn_cls, wandb, skip_dash=True)
-            is_success = True
+            is_success = len(stats) > 0
         except Exception as e:  # noqa
             import traceback
 
@@ -288,22 +288,30 @@ def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
         exp_id=args["exp_id"] or env_name + "-" + str(uuid.uuid4())[:8],
     )
     data = clean_pufferl.create(train_config, vecenv, policy, wandb=wandb, skip_dash=skip_dash)
-    while data.global_step < train_config.total_timesteps:
-        clean_pufferl.evaluate(data)
 
-        # Or, the time budget is up
-        if data.profile.uptime > train_config.train_time_budget:
-            break
+    try:
+        while data.global_step < train_config.total_timesteps:
+            clean_pufferl.evaluate(data)
 
-        clean_pufferl.train(data)
+            # Or, the time budget is up
+            if data.profile.uptime > train_config.train_time_budget:
+                break
 
-    uptime = data.profile.uptime
+            clean_pufferl.train(data)
 
-    # Run evaluation to get the average stats
-    stats = []
-    num_eval_epochs = train_config.eval_timesteps // train_config.batch_size
-    for _ in range(1 + num_eval_epochs):  # extra data for sweeps
-        stats.append(clean_pufferl.evaluate(data)[0])
+        uptime = data.profile.uptime
+
+        # Run evaluation to get the average stats
+        stats = []
+        num_eval_epochs = train_config.eval_timesteps // train_config.batch_size
+        for _ in range(1 + num_eval_epochs):  # extra data for sweeps
+            stats.append(clean_pufferl.evaluate(data)[0])
+
+    except Exception as e:  # noqa
+        uptime, stats = 0, []
+        import traceback
+
+        traceback.print_exc()
 
     clean_pufferl.close(data)
     return stats, uptime
