@@ -147,7 +147,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         carbs_param("train", "vf_coef", "linear", sweep_parameters, search_center=1),
         carbs_param("train", "vf_clip_coef", "logit", sweep_parameters, search_center=0.2),
         carbs_param("train", "max_grad_norm", "linear", sweep_parameters, search_center=0.5),
-        carbs_param("train", "ent_coef", "log", sweep_parameters, search_center=0.001),
+        carbs_param("train", "ent_coef", "log", sweep_parameters, search_center=0.005),
         carbs_param(
             "train",
             "batch_size",
