@@ -81,7 +81,11 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         if mmax is None:
             mmax = float(wandb_param["max"])
         if search_center is None:
-            search_center = float(wandb_param["search_center"])
+            search_center = (
+                int(wandb_param["search_center"])
+                if is_integer
+                else float(wandb_param["search_center"])
+            )
 
         if space == "log":
             Space = LogSpace
@@ -105,52 +109,83 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         os.system("mkdir checkpoints")
 
     target_metric = args["sweep"]["metric"]["name"].split("/")[-1]
-    sweep_parameters = args["sweep"]["parameters"]
-    # wandb_env_params = sweep_parameters['env']['parameters']
-    # wandb_policy_params = sweep_parameters['policy']['parameters']
+    sweep_param = args["sweep"]["parameters"]
+    seeds = args["carbs"]["search_center"]
+    # wandb_env_params = sweep_param['env']['parameters']
+    # wandb_policy_params = sweep_param['policy']['parameters']
 
     # total_timesteps: Must be hardcoded and match wandb sweep space for now
     param_spaces = []
-    if "total_timesteps" in sweep_parameters["train"]["parameters"]:
-        time_param = sweep_parameters["train"]["parameters"]["total_timesteps"]
+    if "total_timesteps" in sweep_param["train"]["parameters"]:
+        time_param = sweep_param["train"]["parameters"]["total_timesteps"]
         min_timesteps = time_param["min"]
         param_spaces.append(
             carbs_param(
                 "train",
                 "total_timesteps",
                 "log",
-                sweep_parameters,
+                sweep_param,
                 search_center=min_timesteps,
                 is_integer=True,
             )
         )
 
+    # TODO: lines are too many, refactor
     param_spaces += [
-        carbs_param("train", "num_envs", "linear", sweep_parameters, is_integer=True),
-        carbs_param("train", "learning_rate", "log", sweep_parameters),
-        carbs_param("train", "gamma", "logit", sweep_parameters),
-        carbs_param("train", "gae_lambda", "logit", sweep_parameters),
-        carbs_param("train", "update_epochs", "linear", sweep_parameters, is_integer=True),
-        carbs_param("train", "clip_coef", "logit", sweep_parameters),
-        carbs_param("train", "vf_coef", "linear", sweep_parameters),
-        carbs_param("train", "vf_clip_coef", "logit", sweep_parameters),
-        carbs_param("train", "max_grad_norm", "linear", sweep_parameters),
-        carbs_param("train", "ent_coef", "log", sweep_parameters),
+        carbs_param(
+            "train",
+            "num_envs",
+            "linear",
+            sweep_param,
+            is_integer=True,
+            search_center=seeds["num_envs"],
+        ),
+        carbs_param(
+            "train", "learning_rate", "log", sweep_param, search_center=seeds["learning_rate"]
+        ),
+        carbs_param("train", "gamma", "logit", sweep_param, search_center=seeds["gamma"]),
+        carbs_param("train", "gae_lambda", "logit", sweep_param, search_center=seeds["gae_lambda"]),
+        carbs_param(
+            "train",
+            "update_epochs",
+            "linear",
+            sweep_param,
+            is_integer=True,
+            search_center=seeds["update_epochs"],
+        ),
+        carbs_param("train", "clip_coef", "logit", sweep_param, search_center=seeds["clip_coef"]),
+        carbs_param("train", "vf_coef", "linear", sweep_param, search_center=seeds["vf_coef"]),
+        carbs_param(
+            "train", "vf_clip_coef", "logit", sweep_param, search_center=seeds["vf_clip_coef"]
+        ),
+        carbs_param(
+            "train", "max_grad_norm", "linear", sweep_param, search_center=seeds["max_grad_norm"]
+        ),
+        carbs_param("train", "ent_coef", "log", sweep_param, search_center=seeds["ent_coef"]),
         carbs_param(
             "train",
             "batch_size",
             "log",
-            sweep_parameters,
+            sweep_param,
             is_integer=True,
+            search_center=seeds["batch_size"],
         ),
         carbs_param(
             "train",
             "minibatch_size",
             "log",
-            sweep_parameters,
+            sweep_param,
             is_integer=True,
+            search_center=seeds["minibatch_size"],
         ),
-        carbs_param("train", "bptt_horizon", "log", sweep_parameters, is_integer=True),
+        carbs_param(
+            "train",
+            "bptt_horizon",
+            "log",
+            sweep_param,
+            is_integer=True,
+            search_center=seeds["bptt_horizon"],
+        ),
     ]
 
     carbs_params = CARBSParams(
