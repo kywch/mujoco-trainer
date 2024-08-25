@@ -65,9 +65,9 @@ name = "sweep"
 goal = "maximize"
 name = "environment/episode_return"
 
-[sweep.parameters.train.parameters.num_envs]
-min = 16
-max = 64
+# [sweep.parameters.train.parameters.num_envs]
+# min = 16
+# max = 64
 
 [sweep.parameters.train.parameters.total_timesteps]
 min = 1_000_000
@@ -101,9 +101,9 @@ max = 10.0
 min = 0.0
 max = 1.0
 
-[sweep.parameters.train.parameters.max_grad_norm]
-min = 0.0
-max = 10.0
+# [sweep.parameters.train.parameters.max_grad_norm]
+# min = 0.0
+# max = 10.0
 
 [sweep.parameters.train.parameters.ent_coef]
 min = 1e-4

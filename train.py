@@ -131,15 +131,16 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         )
 
     # TODO: lines are too many, refactor
+    # params seem to be too many -- hold num_envs, max_grad_norm
     param_spaces += [
-        carbs_param(
-            "train",
-            "num_envs",
-            "linear",
-            sweep_param,
-            is_integer=True,
-            search_center=seeds["num_envs"],
-        ),
+        # carbs_param(
+        #     "train",
+        #     "num_envs",
+        #     "linear",
+        #     sweep_param,
+        #     is_integer=True,
+        #     search_center=seeds["num_envs"],
+        # ),
         carbs_param(
             "train", "learning_rate", "log", sweep_param, search_center=seeds["learning_rate"]
         ),
@@ -148,7 +149,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         carbs_param(
             "train",
             "update_epochs",
-            "linear",
+            "log",
             sweep_param,
             is_integer=True,
             search_center=seeds["update_epochs"],
@@ -158,9 +159,9 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         carbs_param(
             "train", "vf_clip_coef", "logit", sweep_param, search_center=seeds["vf_clip_coef"]
         ),
-        carbs_param(
-            "train", "max_grad_norm", "linear", sweep_param, search_center=seeds["max_grad_norm"]
-        ),
+        # carbs_param(
+        #     "train", "max_grad_norm", "linear", sweep_param, search_center=seeds["max_grad_norm"]
+        # ),
         carbs_param("train", "ent_coef", "log", sweep_param, search_center=seeds["ent_coef"]),
         carbs_param(
             "train",
