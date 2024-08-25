@@ -118,21 +118,21 @@ min = 256
 max = 8192
 
 [sweep.parameters.train.parameters.bptt_horizon]
-values = [1, 2, 4, 8, 16, 32]
+values = [1, 2, 4, 8, 16]
 
 # NOTE: CARBS results depend a lot on the search center
-# We may need separate sets of searach centers for different envs
+# Use the values from cleanrl defaults
 [carbs.search_center]
 num_envs = 32
-learning_rate = 0.00176
-gamma = 0.9792
-gae_lambda = 0.9347
-update_epochs = 5
-clip_coef = 0.7075
-vf_coef = 1.8335
-vf_clip_coef = 0.3131
-max_grad_norm = 0.7614
-ent_coef = 0.00176
-batch_size = 32768
-minibatch_size = 4096
-bptt_horizon = 16
+learning_rate = 3e-4
+gamma = 0.99
+gae_lambda = 0.95
+update_epochs = 10
+clip_coef = 0.2
+vf_coef = 1.0
+vf_clip_coef = 0.2
+max_grad_norm = 0.5
+ent_coef = 0.002
+batch_size = 8192
+minibatch_size = 256
+bptt_horizon = 4
