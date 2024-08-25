@@ -210,15 +210,15 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         print("Getting suggestion...")
         orig_suggestion = carbs.suggest().suggestion
         suggestion = orig_suggestion.copy()
-        print("Suggestion:", suggestion)
+        print("CARBS suggestion:", suggestion)
         train_suggestion = {
             k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("train-")
         }
+        # Correcting critical parameters before updating
+        for key in ["batch_size", "minibatch_size", "bptt_horizon"]:
+            train_suggestion[key] = closest_power(train_suggestion[key])
+        # args["train"]["num_envs"] = closest_power(train_suggestion["num_envs"])  # 16, 32, 64
         args["train"].update(train_suggestion)
-        args["train"]["batch_size"] = closest_power(train_suggestion["batch_size"])
-        args["train"]["minibatch_size"] = closest_power(train_suggestion["minibatch_size"])
-        args["train"]["bptt_horizon"] = closest_power(train_suggestion["bptt_horizon"])
-        args["train"]["num_envs"] = closest_power(train_suggestion["num_envs"])  # 16, 32, 64
 
         env_suggestion = {k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("env-")}
         args["env"].update(env_suggestion)
@@ -226,7 +226,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         args["track"] = True
         wandb.config.update({"train": args["train"]}, allow_val_change=True)
 
-        print(wandb.config.train)
+        print("Train config:", wandb.config.train)
         # print(wandb.config.env)
         # print(wandb.config.policy)
         stats, uptime, is_success = {}, 0, False
