@@ -1,5 +1,6 @@
 import signal
 import uuid
+import json
 import os
 
 import pufferlib
@@ -192,13 +193,19 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
     carbs_params = CARBSParams(
         better_direction_sign=1,
         is_wandb_logging_enabled=False,
-        resample_frequency=0,
-        num_random_samples=2,  # random sampling doesn't seem to work
-        # NOTE: play with these to vary the training steps
-        min_pareto_cost_fraction=0.3,
+        resample_frequency=5,
+        num_random_samples=2,  # random sampling doesn't seem to work?
         max_suggestion_cost=600,  # Shoot for 10 mins
     )
     carbs = CARBS(carbs_params, param_spaces)
+
+    import wandb
+
+    sweep_id = wandb.sweep(
+        sweep=args["sweep"],
+        project="carbs",
+    )
+    carbs_file = "carbs_" + sweep_id + ".txt"
 
     def run_sweep_session():
         print("--------------------------------------------------------------------------------")
@@ -214,6 +221,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         train_suggestion = {
             k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("train-")
         }
+
         # Correcting critical parameters before updating
         for key in ["batch_size", "minibatch_size", "bptt_horizon"]:
             train_suggestion[key] = closest_power(train_suggestion[key])
@@ -261,16 +269,17 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
             )
         )
 
+        # Save CARBS suggestions and results
+        with open(carbs_file, "a") as f:
+            train_suggestion.update({"output": observed_value, "cost": uptime})
+            results_txt = json.dumps(train_suggestion)
+            f.write(results_txt + "\n")
+            f.flush()
+
     # For debugging
     # run_sweep_session()
 
     # Run sweep
-    import wandb
-
-    sweep_id = wandb.sweep(
-        sweep=args["sweep"],
-        project="carbs",
-    )
     wandb.agent(sweep_id, run_sweep_session, count=args["train"]["num_sweeps"])
 
 
