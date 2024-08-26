@@ -124,13 +124,13 @@ values = [1, 2, 4, 8, 16]
 # Use the values from cleanrl defaults
 [carbs.search_center]
 num_envs = 32
-learning_rate = 3e-4
-gamma = 0.99
-gae_lambda = 0.95
+learning_rate = 2e-3
+gamma = 0.97
+gae_lambda = 0.90
 update_epochs = 10
-clip_coef = 0.2
+clip_coef = 0.5
 vf_coef = 1.0
-vf_clip_coef = 0.2
+vf_clip_coef = 0.5
 max_grad_norm = 0.5
 ent_coef = 0.002
 batch_size = 8192
