@@ -195,7 +195,7 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         is_wandb_logging_enabled=False,
         resample_frequency=5,
         num_random_samples=2,  # random sampling doesn't seem to work?
-        max_suggestion_cost=600,  # Shoot for 10 mins
+        # max_suggestion_cost=600,  # Shoot for 10 mins
     )
     carbs = CARBS(carbs_params, param_spaces)
 

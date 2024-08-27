@@ -50,7 +50,7 @@ eval_timesteps = 320_000
 train_time_budget = 1800  # seconds
 
 # (2) Total timesteps
-total_timesteps = 100_000_000
+total_timesteps = 5_000_000
 
 
 ### Sweep related parameters
@@ -69,9 +69,9 @@ name = "environment/episode_return"
 # min = 16
 # max = 64
 
-[sweep.parameters.train.parameters.total_timesteps]
-min = 1_000_000
-max = 100_000_000
+# [sweep.parameters.train.parameters.total_timesteps]
+# min = 1_000_000
+#max = 100_000_000
 
 [sweep.parameters.train.parameters.learning_rate]
 min = 1e-5
