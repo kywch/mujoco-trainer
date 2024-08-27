@@ -106,11 +106,10 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         # Correcting critical parameters before updating
         train_suggestion["total_timesteps"] = int(train_suggestion["total_timesteps"] * 10**6)
         for key in ["batch_size", "bptt_horizon"]:
-            train_suggestion[key] = 2 ** int(train_suggestion[key])
+            train_suggestion[key] = 2 ** round(train_suggestion[key])
         # CARBS minibatch_size is actually the number of minibatches
-        train_suggestion["minibatch_size"] = (
-            train_suggestion["batch_size"] // train_suggestion["minibatch_size"]
-        )
+        num_minibatches = 2 ** round(train_suggestion["minibatch_size"])
+        train_suggestion["minibatch_size"] = train_suggestion["batch_size"] // num_minibatches
 
         # args["train"]["num_envs"] = closest_power(train_suggestion["num_envs"])  # 16, 32, 64
         args["train"].update(train_suggestion)

@@ -88,10 +88,11 @@ ent_coef = { min = 1e-4, max = 0.05 }
 [carbs]
 # Special cases, the scale of which are different from above
 # Total timesteps is in millions, and batch_size, minibatch_size, bptt_horizon are powers of 2
+# These parameters need to be processed before used in training
 total_timesteps = { min = 1, max = 10, space = "linear", search_center = 1 }
-batch_size = { min = 13, max = 18, space = "linear", search_center = 13, is_integer = true }
-minibatch_size = { min = 1, max = 8, space = "linear", search_center = 1, is_integer = true }
-bptt_horizon = { min = 1, max = 5, space = "linear", search_center = 1, is_integer = true }
+batch_size = { min = 13, max = 18, space = "linear", search_center = 15 }
+minibatch_size = { min = 1, max = 8, space = "linear", search_center = 3 }
+bptt_horizon = { min = 1, max = 5, space = "linear", search_center = 3 }
 
 # Others: append min/max from wandb param to carbs param
 learning_rate = { space = "log", search_center = 2e-3 }
