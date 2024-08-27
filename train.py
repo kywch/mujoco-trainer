@@ -40,164 +40,45 @@ def make_policy(env, policy_cls, rnn_cls, args):
 
 ### CARBS Sweeps
 def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
-    from math import log, ceil, floor
     import numpy as np
-
     from carbs import CARBS
     from carbs import CARBSParams
-    from carbs import LinearSpace
-    from carbs import LogSpace
-    from carbs import LogitSpace
     from carbs import ObservationInParam
-
-    # from carbs import ParamDictType
-    from carbs import Param
-
-    def closest_power(x):
-        possible_results = floor(log(x, 2)), ceil(log(x, 2))
-        return int(2 ** min(possible_results, key=lambda z: abs(x - 2**z)))
-
-    def closest_multiple(x, base):
-        return base * ceil(x / base)
-
-    def carbs_param(
-        group,
-        name,
-        space,
-        wandb_params,
-        mmin=None,
-        mmax=None,
-        search_center=None,
-        is_integer=False,
-        rounding_factor=1,
-    ):
-        wandb_param = wandb_params[group]["parameters"][name]
-        if "values" in wandb_param:
-            values = wandb_param["values"]
-            mmin = min(values)
-            mmax = max(values)
-
-        if mmin is None:
-            mmin = float(wandb_param["min"])
-        if mmax is None:
-            mmax = float(wandb_param["max"])
-        if search_center is None:
-            search_center = (
-                int(wandb_param["search_center"])
-                if is_integer
-                else float(wandb_param["search_center"])
-            )
-
-        if space == "log":
-            Space = LogSpace
-        elif space == "linear":
-            Space = LinearSpace
-        elif space == "logit":
-            Space = LogitSpace
-            assert mmin == 0
-            assert mmax == 1
-            assert search_center is not None
-        else:
-            raise ValueError(f"Invalid CARBS space: {space} (log/linear)")
-
-        return Param(
-            name=f"{group}-{name}",
-            space=Space(min=mmin, max=mmax, is_integer=is_integer, rounding_factor=rounding_factor),
-            search_center=search_center,
-        )
+    from utils import carbs_param
 
     if not os.path.exists("checkpoints"):
         os.system("mkdir checkpoints")
 
     target_metric = args["sweep"]["metric"]["name"].split("/")[-1]
-    sweep_param = args["sweep"]["parameters"]
-    seeds = args["carbs"]["search_center"]
-    # wandb_env_params = sweep_param['env']['parameters']
-    # wandb_policy_params = sweep_param['policy']['parameters']
+    wandb_sweep_params = args["sweep"]["parameters"]
+    carbs_param_spaces = []
 
-    # total_timesteps: Must be hardcoded and match wandb sweep space for now
-    param_spaces = []
-    if "total_timesteps" in sweep_param["train"]["parameters"]:
-        time_param = sweep_param["train"]["parameters"]["total_timesteps"]
-        min_timesteps = time_param["min"]
-        param_spaces.append(
-            carbs_param(
-                "train",
-                "total_timesteps",
-                "log",
-                sweep_param,
-                search_center=min_timesteps,
-                is_integer=True,
+    for group in wandb_sweep_params:
+        for name in wandb_sweep_params[group]["parameters"]:
+            assert name in args["carbs"], f"Invalid name {name} in {group}"
+
+            # Handle special cases: total timesteps, batch size, num_minibatch
+            if name in ["total_timesteps", "batch_size", "minibatch_size", "bptt_horizon"]:
+                assert (
+                    "min" in args["carbs"][name] and "max" in args["carbs"][name]
+                ), f"Special param {name} must have min and max in carbs config"
+
+            # Others: append min/max from wandb param to carbs param
+            else:
+                args["carbs"][name].update(wandb_sweep_params[group]["parameters"][name])
+
+            carbs_param_spaces.append(
+                carbs_param(group, name, args["carbs"][name], rounding_factor=1)
             )
-        )
-
-    # TODO: lines are too many, refactor
-    # params seem to be too many -- hold num_envs, max_grad_norm
-    param_spaces += [
-        # carbs_param(
-        #     "train",
-        #     "num_envs",
-        #     "linear",
-        #     sweep_param,
-        #     is_integer=True,
-        #     search_center=seeds["num_envs"],
-        # ),
-        carbs_param(
-            "train", "learning_rate", "log", sweep_param, search_center=seeds["learning_rate"]
-        ),
-        carbs_param("train", "gamma", "logit", sweep_param, search_center=seeds["gamma"]),
-        carbs_param("train", "gae_lambda", "logit", sweep_param, search_center=seeds["gae_lambda"]),
-        carbs_param(
-            "train",
-            "update_epochs",
-            "log",
-            sweep_param,
-            is_integer=True,
-            search_center=seeds["update_epochs"],
-        ),
-        carbs_param("train", "clip_coef", "logit", sweep_param, search_center=seeds["clip_coef"]),
-        carbs_param("train", "vf_coef", "linear", sweep_param, search_center=seeds["vf_coef"]),
-        carbs_param(
-            "train", "vf_clip_coef", "logit", sweep_param, search_center=seeds["vf_clip_coef"]
-        ),
-        # carbs_param(
-        #     "train", "max_grad_norm", "linear", sweep_param, search_center=seeds["max_grad_norm"]
-        # ),
-        carbs_param("train", "ent_coef", "log", sweep_param, search_center=seeds["ent_coef"]),
-        carbs_param(
-            "train",
-            "batch_size",
-            "log",
-            sweep_param,
-            is_integer=True,
-            search_center=seeds["batch_size"],
-        ),
-        carbs_param(
-            "train",
-            "minibatch_size",
-            "log",
-            sweep_param,
-            is_integer=True,
-            search_center=seeds["minibatch_size"],
-        ),
-        carbs_param(
-            "train",
-            "bptt_horizon",
-            "log",
-            sweep_param,
-            is_integer=True,
-            search_center=seeds["bptt_horizon"],
-        ),
-    ]
 
     carbs_params = CARBSParams(
         better_direction_sign=1,
         is_wandb_logging_enabled=False,
         resample_frequency=5,
         num_random_samples=2,  # random sampling doesn't seem to work?
-        # max_suggestion_cost=600,  # Shoot for 10 mins
+        max_suggestion_cost=600,  # Shoot for 10 mins
     )
-    carbs = CARBS(carbs_params, param_spaces)
+    carbs = CARBS(carbs_params, carbs_param_spaces)
 
     import wandb
 
@@ -223,13 +104,20 @@ def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
         }
 
         # Correcting critical parameters before updating
-        for key in ["batch_size", "minibatch_size", "bptt_horizon"]:
-            train_suggestion[key] = closest_power(train_suggestion[key])
+        train_suggestion["total_timesteps"] = int(train_suggestion["total_timesteps"] * 10**6)
+        for key in ["batch_size", "bptt_horizon"]:
+            train_suggestion[key] = 2 ** int(train_suggestion[key])
+        # CARBS minibatch_size is actually the number of minibatches
+        train_suggestion["minibatch_size"] = (
+            train_suggestion["batch_size"] // train_suggestion["minibatch_size"]
+        )
+
         # args["train"]["num_envs"] = closest_power(train_suggestion["num_envs"])  # 16, 32, 64
         args["train"].update(train_suggestion)
 
-        env_suggestion = {k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("env-")}
-        args["env"].update(env_suggestion)
+        # These might be needed later
+        # env_suggestion = {k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("env-")}
+        # args["env"].update(env_suggestion)
 
         args["track"] = True
         wandb.config.update({"train": args["train"]}, allow_val_change=True)

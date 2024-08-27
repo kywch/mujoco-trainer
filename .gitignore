@@ -5,6 +5,7 @@ runs/
 wandb/
 checkpoints/
 videos/
+carbs*
 
 # VSCode
 .vscode/

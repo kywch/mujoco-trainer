@@ -4,6 +4,11 @@ import time
 import tomllib
 import argparse
 
+from carbs import LinearSpace
+from carbs import LogSpace
+from carbs import LogitSpace
+from carbs import Param
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Training arguments for myosuite", add_help=False)
@@ -90,3 +95,44 @@ def init_wandb(args_dict, run_name, id=None, resume=True):
         name=run_name,
     )
     return wandb
+
+
+# def closest_power(x):
+#     possible_results = floor(log(x, 2)), ceil(log(x, 2))
+#     return int(2 ** min(possible_results, key=lambda z: abs(x - 2**z)))
+
+# def closest_multiple(x, base):
+#     return base * ceil(x / base)
+
+
+def carbs_param(group, name, carbs_kwargs, rounding_factor=1):
+    # carbs_kwargs should have either ("min", "max") or "values"
+    if "values" in carbs_kwargs:
+        values = carbs_kwargs["values"]
+        mmin = min(values)
+        mmax = max(values)
+    else:
+        mmin = carbs_kwargs["min"]
+        mmax = carbs_kwargs["max"]
+
+    space = carbs_kwargs["space"]
+    search_center = carbs_kwargs["search_center"] if "search_center" in carbs_kwargs else None
+    is_integer = carbs_kwargs["is_integer"] if "is_integer" in carbs_kwargs else False
+
+    if space == "log":
+        Space = LogSpace
+    elif space == "linear":
+        Space = LinearSpace
+    elif space == "logit":
+        Space = LogitSpace
+        assert mmin == 0
+        assert mmax == 1
+        assert search_center is not None
+    else:
+        raise ValueError(f"Invalid CARBS space: {space} (log/linear)")
+
+    return Param(
+        name=f"{group}-{name}",
+        space=Space(min=mmin, max=mmax, is_integer=is_integer, rounding_factor=rounding_factor),
+        search_center=search_center,
+    )
