@@ -11,6 +11,18 @@ NUM_SUGGESTIONS = 20
 NUM_RANDOM_SAMPLES = 2  # 10
 
 
+def print_pareto_front(carbs, is_conservative=False):
+    pareto_front = carbs._get_pareto_groups(is_conservative=is_conservative)
+    print(f"\n\nPareto front (conservative {is_conservative}):")
+    for i, obs_group in enumerate(pareto_front):
+        mean_cost = np.mean([o.cost for o in obs_group])
+        mean_output = np.mean([o.output for o in obs_group])
+        print(
+            f"Obs group {i+1}, {len(obs_group)} samples - cost: {mean_cost:.2f}, mean output: {mean_output:.2f}"
+        )
+    print("\n\n")
+
+
 if __name__ == "__main__":
     # import sys
     # from loguru import logger
@@ -39,6 +51,7 @@ if __name__ == "__main__":
     for i in range(NUM_SUGGESTIONS):
         carbs_runner()
         print("CARBS state:", carbs.get_state_dict(), "\n")
+        print_pareto_front(carbs)
 
     # # Test the wandb sweep
     # import wandb
