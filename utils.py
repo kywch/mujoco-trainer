@@ -10,19 +10,25 @@ from carbs import CARBSParams
 from carbs import ObservationInParam
 
 
-def init_wandb(args_dict, run_name, id=None, resume=True):
+def init_wandb(args_dict, run_name, id=None, resume=True, disable=False):
     import wandb
 
-    wandb.init(
-        id=id or wandb.util.generate_id(),
-        project=args_dict["wandb_project"],
-        group=args_dict["wandb_group"],
-        allow_val_change=True,
-        save_code=True,
-        resume=resume,
-        config=args_dict,
-        name=run_name,
-    )
+    if disable is True:
+        # NOTE: needs wandb==0.17.5
+        # See https://github.com/wandb/wandb/issues/8112
+        wandb.init(mode="disabled")
+    else:
+        wandb.init(
+            id=id or wandb.util.generate_id(),
+            project=args_dict["wandb_project"],
+            group=args_dict["wandb_group"],
+            allow_val_change=True,
+            save_code=True,
+            resume=resume,
+            config=args_dict,
+            name=run_name,
+        )
+
     return wandb
 
 
@@ -104,16 +110,15 @@ def init_carbs(args, resample_frequency=5, num_random_samples=2, max_suggestion_
     return CARBS(carbs_params, carbs_param_spaces)
 
 
-def carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn):
+def carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn, disable_wandb=False):
     target_metric = args["sweep"]["metric"]["name"].split("/")[-1]
     carbs_file = "carbs_" + sweep_id + ".txt"
-    carbs_state_file = "carbs_checkpoints/carbs_" + sweep_id + ".pt"
 
     def run_sweep_session():
         print("--------------------------------------------------------------------------------")
         print("Starting a new session...")
         print("--------------------------------------------------------------------------------")
-        wandb = init_wandb(args, env_name, id=args["exp_id"])
+        wandb = init_wandb(args, env_name, id=args["exp_id"], disable=disable_wandb)
         wandb.config.__dict__["_locked"] = {}
 
         print(f"Getting suggestion based on CARBS's {len(carbs.success_observations)} obs...")
@@ -129,6 +134,8 @@ def carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn):
         train_suggestion["total_timesteps"] = int(train_suggestion["total_timesteps"] * 10**6)
         for key in ["batch_size", "bptt_horizon"]:
             train_suggestion[key] = 2 ** round(train_suggestion[key])
+        train_suggestion["update_epochs"] = round(train_suggestion["update_epochs"])
+
         # CARBS minibatch_size is actually the number of minibatches
         num_minibatches = 2 ** round(train_suggestion["minibatch_size"])
         train_suggestion["minibatch_size"] = train_suggestion["batch_size"] // num_minibatches
@@ -185,8 +192,5 @@ def carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn):
             results_txt = json.dumps(train_suggestion)
             f.write(results_txt + "\n")
             f.flush()
-
-        # Save the CARBS state
-        carbs.save_to_file(carbs_state_file)
 
     return run_sweep_session

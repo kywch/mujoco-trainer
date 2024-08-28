@@ -98,7 +98,7 @@ bptt_horizon = { min = 1, max = 5, space = "linear", search_center = 3 }
 learning_rate = { space = "log", search_center = 2e-3 }
 gamma = { space = "logit", search_center = 0.97 }
 gae_lambda = { space = "logit", search_center = 0.90 }
-update_epochs = { space = "log", search_center = 5, is_integer = true }
+update_epochs = { space = "log", search_center = 5 }
 clip_coef = { space = "logit", search_center = 0.5 }
 vf_coef = { space = "linear", search_center = 1.0 }
 vf_clip_coef = { space = "logit", search_center = 0.5 }
