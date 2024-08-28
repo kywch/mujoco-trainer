@@ -112,32 +112,6 @@ def parse_args():
     return args, env_name, run_name
 
 
-### CARBS Sweeps
-def sweep_carbs(args, env_name, make_env, policy_cls, rnn_cls):
-    import wandb
-    from utils import init_carbs, carbs_runner_fn
-
-    if not os.path.exists("carbs_checkpoints"):
-        os.system("mkdir carbs_checkpoints")
-
-    carbs = init_carbs(args, num_random_samples=10)
-
-    sweep_id = wandb.sweep(
-        sweep=args["sweep"],
-        project="carbs",
-    )
-
-    def train_fn(args, wandb):
-        return train(args, env_creator, policy_cls, rnn_cls, wandb=wandb, skip_dash=True)
-
-    # Run sweep
-    wandb.agent(
-        sweep_id,
-        carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn),
-        count=args["train"]["num_sweeps"],
-    )
-
-
 def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
     if args["vec"] == "serial":
         vec = pufferlib.vector.Serial
@@ -199,6 +173,32 @@ def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
 
     clean_pufferl.close(data)
     return stats, uptime
+
+
+### CARBS Sweeps
+def sweep_carbs(args, env_name, env_creator, policy_cls, rnn_cls):
+    import wandb
+    from utils import init_carbs, carbs_runner_fn
+
+    if not os.path.exists("carbs_checkpoints"):
+        os.system("mkdir carbs_checkpoints")
+
+    carbs = init_carbs(args, num_random_samples=10)
+
+    sweep_id = wandb.sweep(
+        sweep=args["sweep"],
+        project="carbs",
+    )
+
+    def train_fn(args, wandb):
+        return train(args, env_creator, policy_cls, rnn_cls, wandb=wandb, skip_dash=True)
+
+    # Run sweep
+    wandb.agent(
+        sweep_id,
+        carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn),
+        count=args["train"]["num_sweeps"],
+    )
 
 
 if __name__ == "__main__":
