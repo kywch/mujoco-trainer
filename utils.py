@@ -116,10 +116,11 @@ def carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn):
         wandb = init_wandb(args, env_name, id=args["exp_id"])
         wandb.config.__dict__["_locked"] = {}
 
-        print("Getting suggestion...")
+        print(f"Getting suggestion based on CARBS's {len(carbs.success_observations)} obs...")
+
         orig_suggestion = carbs.suggest().suggestion
         suggestion = orig_suggestion.copy()
-        print("CARBS suggestion:", suggestion)
+        print("\nCARBS suggestion:", suggestion)
         train_suggestion = {
             k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("train-")
         }
@@ -142,7 +143,7 @@ def carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn):
         args["track"] = True
         wandb.config.update({"train": args["train"]}, allow_val_change=True)
 
-        print("Train config:", wandb.config.train)
+        print("\nTrain config:", wandb.config.train, "\n")
         # print(wandb.config.env)
         # print(wandb.config.policy)
         stats, uptime, is_success = {}, 0, False
