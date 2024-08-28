@@ -1,6 +1,4 @@
-import sys
 import numpy as np
-from loguru import logger
 
 from train import parse_args
 from clean_pufferl import seed_everything
@@ -14,8 +12,10 @@ NUM_RANDOM_SAMPLES = 2  # 10
 
 
 if __name__ == "__main__":
-    logger.remove()
-    logger.add(sink=sys.stderr, level="ERROR")
+    # import sys
+    # from loguru import logger
+    # logger.remove()
+    # logger.add(sink=sys.stderr, level="ERROR")
 
     # Use the default config to test CARBS
     args, _, _ = parse_args()
