@@ -14,7 +14,8 @@ from policy import CleanRLPolicy
 
 
 if __name__ == "__main__":
-    from utils import parse_args, init_wandb
+    from utils import init_wandb
+    from train import parse_args
 
     args_dict, env_name, run_name = parse_args()
     run_name = "cleanrl_" + run_name
