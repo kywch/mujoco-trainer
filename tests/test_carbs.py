@@ -6,9 +6,7 @@ from utils import init_carbs, carbs_runner_fn
 
 RANDOM_SEED = 42
 NUM_SUGGESTIONS = 20
-
-# NOTE: When samples >= 3, we get the repeated random samples
-NUM_RANDOM_SAMPLES = 2  # 10
+NUM_RANDOM_SAMPLES = 10
 
 
 def print_pareto_front(carbs, is_conservative=False):

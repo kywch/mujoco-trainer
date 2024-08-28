@@ -48,7 +48,7 @@ def carbs_param(group, name, carbs_kwargs, rounding_factor=1):
         mmax = max(values)
     else:
         mmin = carbs_kwargs["min"]
-        mmax = carbs_kwargs["max"]
+        mmax = carbs_kwargs["max"] if "max" in carbs_kwargs else float("+inf")
 
     space = carbs_kwargs["space"]
     search_center = carbs_kwargs["search_center"] if "search_center" in carbs_kwargs else None
@@ -88,8 +88,8 @@ def init_carbs(args, resample_frequency=5, num_random_samples=2, max_suggestion_
             # Handle special cases: total timesteps, batch size, num_minibatch
             if name in ["total_timesteps", "batch_size", "minibatch_size", "bptt_horizon"]:
                 assert (
-                    "min" in carbs_config[name] and "max" in carbs_config[name]
-                ), f"Special param {name} must have min and max in carbs config"
+                    "min" in carbs_config[name]
+                ), f"Special param {name} must have min in carbs config"
 
             # Others: append min/max from wandb param to carbs param
             else:

@@ -183,8 +183,7 @@ def sweep_carbs(args, env_name, env_creator, policy_cls, rnn_cls):
     if not os.path.exists("carbs_checkpoints"):
         os.system("mkdir carbs_checkpoints")
 
-    # NOTE: Perhaps due to seed everything, the same params are sampled repeatedly
-    carbs = init_carbs(args, num_random_samples=2)
+    carbs = init_carbs(args, num_random_samples=20)
 
     sweep_id = wandb.sweep(
         sweep=args["sweep"],

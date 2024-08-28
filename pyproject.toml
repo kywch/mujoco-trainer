@@ -20,7 +20,7 @@ classifiers = [
 dependencies = [
     "mujoco<3",
     "pufferlib@git+https://github.com/kywch/PufferLib@dev",
-    "carbs@git+https://github.com/kywch/carbs.git",  # did my change break it?
+    "carbs@git+https://github.com/kywch/carbs.git@fixes",
     # "carbs@git+https://github.com/imbue-ai/carbs.git",
     "numpy==1.23.3",
     "scikit-learn==1.1.3",
