@@ -72,7 +72,8 @@ name = "environment/episode_return"
 # If the sampled params are out of range, the wandb sweep crashes
 total_timesteps = { min = 1_000_000, max = 100_000_000 }
 batch_size = { min = 1, max = 2_000_000 }
-minibatch_size = { min = 1, max = 2_000_000 }
+num_minibatches = { min = 1, max = 10000 }
+# minibatch_size = { min = 1, max = 2_000_000 }
 bptt_horizon = { min = 1, max = 32 }
 
 # These' scales are good for CARBS
@@ -88,11 +89,12 @@ ent_coef = { min = 1e-4, max = 0.05 }
 
 [carbs]
 # Special cases, the scale of which are different from above
-# Total timesteps is in millions, and batch_size, minibatch_size, bptt_horizon are powers of 2
+# NOTE: The actual values of batch_size, num_minibatches, bptt_horizon are 2**suggested
 # These parameters need to be processed before used in training
-total_timesteps = { min = 1, space = "linear", search_center = 1 }
+total_timesteps = { min = 1_000_000, max = 10_000_000, space = "log", search_center = 1_000_000, is_integer = true }
 batch_size = { min = 13, max = 20, space = "linear", search_center = 15 }
-minibatch_size = { min = 1, max = 8, space = "linear", search_center = 3 }
+num_minibatches = { min = 1, max = 10, space = "linear", search_center = 4 }
+# minibatch_size = { min = 1, max = 10, space = "linear", search_center = 4 }
 bptt_horizon = { min = 1, max = 5, space = "linear", search_center = 3 }
 
 # Others: append min/max from wandb param to carbs param

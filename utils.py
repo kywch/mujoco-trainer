@@ -86,7 +86,7 @@ def init_carbs(args, resample_frequency=5, num_random_samples=2, max_suggestion_
             assert name in carbs_config, f"Invalid name {name} in {group}"
 
             # Handle special cases: total timesteps, batch size, num_minibatch
-            if name in ["total_timesteps", "batch_size", "minibatch_size", "bptt_horizon"]:
+            if name in ["total_timesteps", "batch_size", "num_minibatches", "bptt_horizon"]:
                 assert (
                     "min" in carbs_config[name]
                 ), f"Special param {name} must have min in carbs config"
@@ -131,14 +131,16 @@ def carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn, disable_wandb=Fal
         }
 
         # Correcting critical parameters before updating
-        train_suggestion["total_timesteps"] = int(train_suggestion["total_timesteps"] * 10**6)
+        # train_suggestion["total_timesteps"] = int(train_suggestion["total_timesteps"] * 10**6)
         for key in ["batch_size", "bptt_horizon"]:
             train_suggestion[key] = 2 ** round(train_suggestion[key])
         train_suggestion["update_epochs"] = round(train_suggestion["update_epochs"])
 
         # CARBS minibatch_size is actually the number of minibatches
-        num_minibatches = 2 ** round(train_suggestion["minibatch_size"])
-        train_suggestion["minibatch_size"] = train_suggestion["batch_size"] // num_minibatches
+        train_suggestion["num_minibatches"] = 2 ** round(train_suggestion["num_minibatches"])
+        train_suggestion["minibatch_size"] = (
+            train_suggestion["batch_size"] // train_suggestion["num_minibatches"]
+        )
 
         # args["train"]["num_envs"] = closest_power(train_suggestion["num_envs"])  # 16, 32, 64
         args["train"].update(train_suggestion)
