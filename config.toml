@@ -69,10 +69,11 @@ name = "environment/episode_return"
 # num_envs = { min = 16, max = 64 }
 
 # NOTE: These are differently handled by CARBS
+# If the sampled params are out of range, the wandb sweep crashes
 total_timesteps = { min = 1_000_000, max = 100_000_000 }
-batch_size = { min = 8192, max = 262144 }
-minibatch_size = { min = 256, max = 8192 }
-bptt_horizon = { values = [1, 2, 4, 8, 16] }
+batch_size = { min = 1, max = 2_000_000 }
+minibatch_size = { min = 1, max = 2_000_000 }
+bptt_horizon = { min = 1, max = 32 }
 
 # These' scales are good for CARBS
 learning_rate = { min = 1e-5, max = 1e-1 }
