@@ -1,4 +1,5 @@
 import json
+import time
 import numpy as np
 
 from carbs import LinearSpace
@@ -110,7 +111,7 @@ def init_carbs(args, resample_frequency=5, num_random_samples=2, max_suggestion_
     return CARBS(carbs_params, carbs_param_spaces)
 
 
-def carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn, disable_wandb=False):
+def carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn, disable_wandb=False, debug=False):
     target_metric = args["sweep"]["metric"]["name"].split("/")[-1]
     carbs_file = "carbs_" + sweep_id + ".txt"
 
@@ -122,6 +123,9 @@ def carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn, disable_wandb=Fal
         wandb.config.__dict__["_locked"] = {}
 
         print(f"Getting suggestion based on CARBS's {len(carbs.success_observations)} obs...")
+
+        if debug is True:
+            carbs._set_seed(int(time.time()))  # To get random "random samples"
 
         orig_suggestion = carbs.suggest().suggestion
         suggestion = orig_suggestion.copy()

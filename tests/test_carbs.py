@@ -43,7 +43,7 @@ if __name__ == "__main__":
         return stats, cost
 
     carbs_runner = carbs_runner_fn(
-        args, "test", carbs, "test", train_fn=dummy_train_fn, disable_wandb=True
+        args, "test", carbs, "test", train_fn=dummy_train_fn, disable_wandb=True, debug=True
     )
 
     for i in range(NUM_SUGGESTIONS):
