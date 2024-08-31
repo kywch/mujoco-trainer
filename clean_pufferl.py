@@ -122,7 +122,7 @@ def evaluate(data):
             else:
                 actions, logprob, _, value = policy(o_device)
 
-            if config.device == "cuda":
+            if config.device.startswith("cuda"):
                 torch.cuda.synchronize()
 
         with profile.eval_misc:
@@ -203,7 +203,7 @@ def train(data):
                         action=atn,
                     )
 
-                if config.device == "cuda":
+                if config.device.startswith("cuda"):
                     torch.cuda.synchronize()
 
             with profile.train_misc:
@@ -248,7 +248,7 @@ def train(data):
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(data.policy.parameters(), config.max_grad_norm)
                 data.optimizer.step()
-                if config.device == "cuda":
+                if config.device.startswith("cuda"):
                     torch.cuda.synchronize()
 
             with profile.train_misc:

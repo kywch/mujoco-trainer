@@ -38,19 +38,14 @@ batch_size = 2048
 minibatch_size = 512
 bptt_horizon = 16
 
+total_timesteps = 5_000_000
+
 # Check if the results are the same before compiling
 compile = false
 compile_mode = "reduce-overhead"
 
 # Extra steps to evaluate the agent after training
 eval_timesteps = 320_000
-
-# Train stop criteria
-# (1) Max wall time
-train_time_budget = 1800  # seconds
-
-# (2) Total timesteps
-total_timesteps = 5_000_000
 
 
 ### Sweep related parameters

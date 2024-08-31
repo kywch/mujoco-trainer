@@ -55,7 +55,7 @@ def parse_args():
     parser.add_argument(
         "--mode",
         type=str,
-        default="sweep-carbs",
+        default="train",
         choices="train eval evaluate sweep-carbs autotune profile".split(),
     )
     parser.add_argument("--eval-model-path", type=str, default=None)
@@ -150,11 +150,6 @@ def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
     try:
         while data.global_step < train_config.total_timesteps:
             clean_pufferl.evaluate(data)
-
-            # Or, the time budget is up
-            if data.profile.uptime > train_config.train_time_budget:
-                break
-
             clean_pufferl.train(data)
 
         uptime = data.profile.uptime
