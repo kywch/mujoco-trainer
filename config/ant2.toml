@@ -1,0 +1,41 @@
+[base]
+policy_name = "CleanRLPolicy"
+
+# From https://wandb.ai/kywch/carbs/runs/0hsiut3p
+[train]
+seed = 1
+torch_deterministic = true
+cpu_offload = false
+device = "cuda"
+learning_rate = 0.0006780033387474591
+anneal_lr = false
+gamma = 0.9826515513748612
+gae_lambda = 0.7885389889641636
+update_epochs = 9
+norm_adv = true
+clip_coef = 0.8454841804664837
+clip_vloss = true
+vf_coef = 0.5171867609024048
+vf_clip_coef = 0.8954462009453029
+max_grad_norm = 0.5
+ent_coef = 0.007970488991301046
+# target_kl = None  # Assign a value when needed.
+
+num_envs = 32
+num_workers = 16
+env_batch_size = 16
+zero_copy = false
+data_dir = "experiments"
+checkpoint_interval = 125
+batch_size = 16384
+minibatch_size = 2048
+bptt_horizon = 16
+
+total_timesteps = 10_000_000
+
+# Check if the results are the same before compiling
+compile = false
+compile_mode = "reduce-overhead"
+
+# Extra steps to evaluate the agent after training
+eval_timesteps = 1_000_000
