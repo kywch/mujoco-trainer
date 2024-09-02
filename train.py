@@ -1,6 +1,7 @@
 import argparse
 import tomllib
 import signal
+import random
 import uuid
 import time
 import ast
@@ -42,23 +43,29 @@ def make_policy(env, policy_cls, rnn_cls, args):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Training arguments for myosuite", add_help=False)
-    parser.add_argument("-c", "--config", default="config.toml")
+    parser = argparse.ArgumentParser(
+        description="Training arguments for gymnasium mujoco", add_help=False
+    )
+    parser.add_argument("-c", "--config", default="config/debug.toml")
     parser.add_argument(
         "-e",
         "--env-name",
         type=str,
-        default="Ant-v4",
+        default="Ant-v5",
         help="Name of specific environment to run",
     )
 
     parser.add_argument(
         "--mode",
         type=str,
-        default="train",
-        choices="train eval evaluate sweep-carbs autotune profile".split(),
+        default="video",
+        choices="train video sweep autotune profile".split(),
     )
-    parser.add_argument("--eval-model-path", type=str, default=None)
+    # parser.add_argument("--eval-model-path", type=str, default=None)
+    parser.add_argument(
+        "--eval-model-path", type=str, default="experiments/Ant-v4-0f/model_000242.pt"
+    )
+
     parser.add_argument(
         "--baseline", action="store_true", help="Pretrained baseline where available"
     )
@@ -76,7 +83,11 @@ def parse_args():
     parser.add_argument("--wandb-project", type=str, default="mujoco")
     parser.add_argument("--wandb-group", type=str, default=None)
     parser.add_argument("--track", action="store_true", help="Track on WandB")
-    parser.add_argument("--capture-video", action="store_true", help="Capture videos")
+    parser.add_argument(
+        "--repeat", type=int, default=1, help="Repeat the training with different seeds"
+    )
+
+    # parser.add_argument("--capture-video", action="store_true", help="Capture videos")
 
     args = parser.parse_known_args()[0]
 
@@ -120,19 +131,12 @@ def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
     else:
         raise ValueError("Invalid --vector (serial/multiprocessing).")
 
-    env_args = None
-    env_kwargs = args["env"]
-    if args["capture_video"] is True:
-        assert isinstance(env_creator, list), "Video capture requires the env_creator to be a list"
-        num_envs = args["train"]["num_envs"]
-        assert len(env_creator) == num_envs
-        env_args = [[]] * num_envs
-        env_kwargs = [args["env"]] * num_envs
+    # NOTE: Do NOT capture videos during training. It slows down training too much.
+    assert args["capture_video"] is False, "Video capture is not supported during training"
 
     vecenv = pufferlib.vector.make(
         env_creator,
-        env_args=env_args,
-        env_kwargs=env_kwargs,
+        env_kwargs=args["env"],
         num_envs=args["train"]["num_envs"],
         num_workers=args["train"]["num_workers"],
         batch_size=args["train"]["env_batch_size"],
@@ -200,6 +204,9 @@ if __name__ == "__main__":
     args, env_name, run_name = parse_args()
     run_name = "pufferl_" + run_name
 
+    # NO video capture during train. It slows down training too much.
+    args["capture_video"] = True if args["mode"] == "video" else False
+
     # Load env binding and policy
     env_creator = environment.pufferl_env_creator(env_name, run_name, args)
     policy_cls = getattr(policy, args["base"]["policy_name"])
@@ -209,14 +216,29 @@ if __name__ == "__main__":
 
     # Process mode
     if args["mode"] == "train":
+        assert args["repeat"] > 0, "Repeat count must be positive"
+        if args["repeat"] > 1:
+            args["track"] = True
+            assert args["wandb_group"] is not None, "Repeating requires a wandb group"
         wandb = None
-        if args["track"]:
-            wandb = init_wandb(args, run_name)
-        train(args, env_creator, policy_cls, rnn_cls, wandb=wandb)
 
-    elif args["mode"] in ("eval", "evaluate"):
+        for i in range(args["repeat"]):
+            if i > 0:
+                # Generate a new 8-digit seed
+                args["train"]["seed"] = random.randint(10_000_000, 99_999_999)
+
+            if args["track"]:
+                wandb = init_wandb(args, run_name, id=i)
+            train(args, env_creator, policy_cls, rnn_cls, wandb=wandb)
+
+    elif args["mode"] == "video":
+        # Single env
+        args["train"]["num_envs"] = 1
+        args["train"]["num_workers"] = 1
+        args["train"]["env_batch_size"] = 1
+
         clean_pufferl.rollout(
-            env_creator,
+            env_creator[0],
             args["env"],
             policy_cls=policy_cls,
             rnn_cls=rnn_cls,
@@ -226,7 +248,7 @@ if __name__ == "__main__":
             device=args["train"]["device"],
         )
 
-    elif args["mode"] == "sweep-carbs":
+    elif args["mode"] == "sweep":
         args["capture_video"] = False
         env_creator = environment.pufferl_env_creator(env_name, run_name, args)
         sweep_carbs(args, env_name, env_creator, policy_cls, rnn_cls)
@@ -235,8 +257,10 @@ if __name__ == "__main__":
         pufferlib.vector.autotune(env_creator, batch_size=args["train"]["env_batch_size"])
 
     elif args["mode"] == "profile":
+        # TODO: Profile gymnasium wrappers
         import cProfile
 
+        args["train"]["total_timesteps"] = 10_000
         cProfile.run("train(args, env_creator, policy_cls, rnn_cls)", "stats.profile")
         import pstats
         from pstats import SortKey

@@ -41,15 +41,5 @@ bptt_horizon = 1
 compile = false
 compile_mode = "reduce-overhead"
 
-capture_video = false
-
-# Train stop criteria
-# (1) Wall time
-train_time_budget = 6000  # seconds
-
-# (2) If last 100 episode solved is above this threshold, stop training
-stop_train_threshold = 0.9
-eval_timesteps = 60_000
-
-# (3) Total timesteps
-total_timesteps = 2_000_000
+total_timesteps = 10_000
+eval_timesteps = 1_000

@@ -10,9 +10,11 @@ import pufferlib.emulation
 import pufferlib.postprocess
 
 
-def single_env_creator(env_name, run_name, capture_video, gamma, idx=None, pufferl=False):
+def single_env_creator(
+    env_name, run_name, capture_video, gamma, idx=None, norm_reward=True, pufferl=False
+):
     if capture_video and idx == 0:
-        env = gymnasium.make(env_name, render_mode="rgb_array")
+        env = gymnasium.make(env_name, render_mode="rgb_array", width=240, height=240)
         env = gymnasium.wrappers.RecordVideo(env, f"videos/{run_name}")
     else:
         env = gymnasium.make(env_name)
@@ -20,8 +22,11 @@ def single_env_creator(env_name, run_name, capture_video, gamma, idx=None, puffe
     env = pufferlib.postprocess.ClipAction(env)  # NOTE: this changed actions space
     env = gymnasium.wrappers.NormalizeObservation(env)
     env = gymnasium.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
-    env = NormalizeReward(env, gamma=gamma)
-    env = gymnasium.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+
+    if norm_reward is True:
+        env = NormalizeReward(env, gamma=gamma)
+        env = gymnasium.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+
     if pufferl is True:
         env = pufferlib.emulation.GymnasiumPufferEnv(env=env)
     return env
@@ -40,11 +45,16 @@ def cleanrl_env_creator(env_name, run_name, capture_video, gamma, idx):
 
 
 def pufferl_env_creator(env_name, run_name, args_dict):
+    # NOTE: For puffer, capture video only happens during eval.
+    # For video, do NOT normalize reward
+    norm_reward = not args_dict["capture_video"]
+
     default_kwargs = {
         "env_name": env_name,
         "run_name": run_name,
         "capture_video": args_dict["capture_video"],
         "gamma": args_dict["train"]["gamma"],
+        "norm_reward": norm_reward,
         "pufferl": True,
     }
 

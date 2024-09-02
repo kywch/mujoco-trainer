@@ -9,6 +9,10 @@ import time
 from threading import Thread
 from collections import defaultdict, deque
 
+from moviepy.editor import ImageSequenceClip
+from PIL import Image, ImageDraw
+from tqdm import tqdm
+
 import rich
 from rich.console import Console
 from rich.table import Table
@@ -607,6 +611,19 @@ def count_params(policy):
     return sum(p.numel() for p in policy.parameters() if p.requires_grad)
 
 
+# Functions for video generation
+def add_text_to_image(image, text, position, color=(255, 255, 255)):
+    """Add text to an image using PIL."""
+    draw = ImageDraw.Draw(image)
+    draw.text(position, text, fill=color)
+    return image
+
+
+def create_video(frames, output_path, fps=30):
+    clip = ImageSequenceClip(list(frames), fps=fps)
+    clip.write_videofile(output_path, codec="libx264")
+
+
 def rollout(
     env_creator,
     env_kwargs,
@@ -616,25 +633,25 @@ def rollout(
     agent_kwargs,
     model_path=None,
     device="cuda",
+    horizon=2000,
 ):
     # We are just using Serial vecenv to give a consistent
     # single-agent/multi-agent API for evaluation
     env = pufferlib.vector.make(env_creator, env_kwargs=env_kwargs)
 
-    if model_path is None:
-        agent = agent_creator(env, policy_cls, rnn_cls, agent_kwargs).to(device)
-    else:
-        agent = torch.load(model_path, map_location=device)
+    assert model_path is not None, "model_path must be provided for rollout"
+    agent = torch.load(model_path, map_location=device)
 
-    ob, _ = env.reset()
+    ob, _ = env.reset(seed=int(time.time()))
     driver = env.driver_env.env
-    os.system("clear")
     state = None
 
-    # frames = []
     tick = 0
-    while tick <= 1000:
-        driver.mj_render()
+    episode = 1
+    ep_reward = 0
+    frames = []
+    reward_hist = deque(maxlen=100)
+    for tick in tqdm(range(horizon)):
         with torch.no_grad():
             ob = torch.from_numpy(ob).to(device).view(1, -1)
             if hasattr(agent, "lstm"):
@@ -646,28 +663,33 @@ def rollout(
 
         ob, reward, done, truncated, infos = driver.step(action[0])
 
-        print(f"Reward: {reward:.4f}, Tick: {tick}, Done: {done}")
-        print(f"Next action: {action[0]}")
+        rgb_array = driver.render()
 
-        # user_input = input("Enter actions separated by spaces: ")
-        # if len(user_input) > 0:
-        #     action[0] = np.array([float(x) for x in user_input.split()])
+        # Add episode, reward and tick to the image
+        image = Image.fromarray(rgb_array)
+        image = add_text_to_image(
+            image, f"Tick {tick}/{horizon}\nEpisode: {episode}, Reward: {ep_reward:.4f}", (10, 10)
+        )
+        frames.append(np.array(image))
 
-        tick += 1
-        time.sleep(0.1)
+        # print(f"Reward: {reward:.4f}, Tick: {tick}, Done: {done}")
+        # print(f"Next action: {action[0]}")
 
-        if done:
-            print("Done...")
-            ob, _ = env.reset()
+        ep_reward += reward
 
-        if truncated:
-            print("Truncated...")
-            ob, _ = env.reset()
+        reward_hist.append(reward)
+        if tick % 100 == 0:
+            print(f"The avg of last 100 rewards: { np.mean(reward_hist) }")
 
-    # # Save frames as gif
-    # import imageio
+        if done or truncated:
+            print(f"Tick: {tick}, Episode: {episode}, Reward: {ep_reward:.4f}")
+            episode += 1
+            ep_reward = 0
+            ob, _ = driver.reset(seed=int(time.time()))
 
-    # imageio.mimsave("../docker/dire_victory.gif", frames, fps=15, loop=0)
+    # Save the video file to the model path
+    video_name = f"{model_path.split('.pt')[0]}_video.mp4"
+    create_video(frames, video_name, fps=30)
 
 
 def seed_everything(seed, torch_deterministic):
