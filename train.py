@@ -149,7 +149,6 @@ def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
         env=env_name,
         exp_id=args["exp_id"] or env_name + "-" + str(uuid.uuid4())[:8],
     )
-    train_config.device = args["device"] or train_config.device
     data = clean_pufferl.create(train_config, vecenv, policy, wandb=wandb, skip_dash=skip_dash)
 
     try:
@@ -207,6 +206,9 @@ if __name__ == "__main__":
     args, env_name, run_name = parse_args()
     run_name = "pufferl_" + run_name
 
+    if args["device"] is not None:
+        args["train"]["device"] = args["device"]
+
     # NO video capture during train. It slows down training too much.
     args["capture_video"] = True if args["mode"] == "video" else False
 
@@ -240,8 +242,6 @@ if __name__ == "__main__":
         args["train"]["num_workers"] = 1
         args["train"]["env_batch_size"] = 1
 
-        device = args["device"] or args["train"]["device"]
-
         clean_pufferl.rollout(
             env_creator[0],
             args["env"],
@@ -250,7 +250,7 @@ if __name__ == "__main__":
             agent_creator=make_policy,
             agent_kwargs=args,
             model_path=args["eval_model_path"],
-            device=device,
+            device=args["train"]["device"],
         )
 
     elif args["mode"] == "sweep":
