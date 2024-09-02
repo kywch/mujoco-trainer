@@ -9,6 +9,8 @@ import gymnasium
 import pufferlib.emulation
 import pufferlib.postprocess
 
+import updated_envs  # noqa  # register the mujoco v5 envs
+
 
 def single_env_creator(
     env_name, run_name, capture_video, gamma, idx=None, norm_reward=True, pufferl=False
