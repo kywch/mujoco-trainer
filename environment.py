@@ -13,7 +13,14 @@ import updated_envs  # noqa  # register the mujoco v5 envs
 
 
 def single_env_creator(
-    env_name, run_name, capture_video, gamma, idx=None, norm_reward=True, pufferl=False
+    env_name,
+    run_name,
+    capture_video,
+    gamma,
+    idx=None,
+    norm_reward=True,
+    norm_obs=False,
+    pufferl=False,
 ):
     if capture_video and idx == 0:
         env = gymnasium.make(env_name, render_mode="rgb_array", width=240, height=240)
@@ -22,8 +29,10 @@ def single_env_creator(
         env = gymnasium.make(env_name)
     env = EpisodeStats(env)
     env = pufferlib.postprocess.ClipAction(env)  # NOTE: this changed actions space
-    env = gymnasium.wrappers.NormalizeObservation(env)
-    env = gymnasium.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
+
+    if norm_obs is True:
+        env = gymnasium.wrappers.NormalizeObservation(env)
+        env = gymnasium.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
 
     if norm_reward is True:
         env = NormalizeReward(env, gamma=gamma)

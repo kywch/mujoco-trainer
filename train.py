@@ -63,16 +63,15 @@ def parse_args():
     )
     # parser.add_argument("--eval-model-path", type=str, default=None)
     parser.add_argument(
-        "--eval-model-path", type=str, default="experiments/Ant-v4-0f/model_000242.pt"
+        "--eval-model-path", type=str, default="experiments/Humanoid-v4-1381e5b8/model_000103.pt"
     )
 
     parser.add_argument(
         "--baseline", action="store_true", help="Pretrained baseline where available"
     )
     parser.add_argument(
+        "-v",
         "--vec",
-        "--vector",
-        "--vectorization",
         type=str,
         default="serial",
         choices=["serial", "multiprocessing"],
@@ -86,6 +85,7 @@ def parse_args():
     parser.add_argument(
         "--repeat", type=int, default=1, help="Repeat the training with different seeds"
     )
+    parser.add_argument("-d", "--device", type=str, default=None)
 
     # parser.add_argument("--capture-video", action="store_true", help="Capture videos")
 
@@ -149,6 +149,7 @@ def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
         env=env_name,
         exp_id=args["exp_id"] or env_name + "-" + str(uuid.uuid4())[:8],
     )
+    train_config.device = args["device"] or train_config.device
     data = clean_pufferl.create(train_config, vecenv, policy, wandb=wandb, skip_dash=skip_dash)
 
     try:
@@ -158,8 +159,10 @@ def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
 
         uptime = data.profile.uptime
 
+        # TODO: If we CARBS reward param, we should have a separate venenv ready for eval
         # Run evaluation to get the average stats
         stats = []
+        data.vecenv.async_reset(seed=int(time.time()))
         num_eval_epochs = train_config.eval_timesteps // train_config.batch_size
         for _ in range(1 + num_eval_epochs):  # extra data for sweeps
             stats.append(clean_pufferl.evaluate(data)[0])
@@ -237,6 +240,8 @@ if __name__ == "__main__":
         args["train"]["num_workers"] = 1
         args["train"]["env_batch_size"] = 1
 
+        device = args["device"] or args["train"]["device"]
+
         clean_pufferl.rollout(
             env_creator[0],
             args["env"],
@@ -245,7 +250,7 @@ if __name__ == "__main__":
             agent_creator=make_policy,
             agent_kwargs=args,
             model_path=args["eval_model_path"],
-            device=args["train"]["device"],
+            device=device,
         )
 
     elif args["mode"] == "sweep":
