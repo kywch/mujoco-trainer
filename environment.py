@@ -44,7 +44,7 @@ def single_env_creator(
 
     # TODO: RMS norm reward is slow. If simple norm works, use that
     if simp_norm_reward is True:
-        env = SimpleNormalizeReward(env, bias=simp_norm_reward_bias)
+        env = SimpleNormalizeReward(env)  # , bias=simp_norm_reward_bias)
 
     elif rms_norm_reward is True:
         env = RMSNormalizeReward(env, gamma=rms_norm_reward_gamma)
@@ -144,26 +144,29 @@ class EpisodeStats(gymnasium.Wrapper):
 
 
 class SimpleNormalizeReward(gymnasium.Wrapper):
-    def __init__(self, env, bias, scale=0.01):
+    def __init__(self, env, scale=0.1):
         self.env = env
         self.observation_space = env.observation_space
         self.action_space = env.action_space
         self.reset()
 
-        self.bias = bias
         self.scale = scale
-        self.total_reward = 0
-        self.total_steps = 0
+
+        # To get average reward
+        self.sum_reward_raw = 0
+        self.sum_reward_norm = 0
+        self.total_steps = 1  # to avoid division by zero
 
     def step(self, action):
         observation, reward, terminated, truncated, info = super().step(action)
 
-        norm_rew = (reward - self.bias) * self.scale
-        self.total_reward += norm_rew
         self.total_steps += 1
+        self.sum_reward_raw += reward
+        norm_rew = (reward - self.sum_reward_raw / self.total_steps) * self.scale
+        self.sum_reward_norm += norm_rew
 
         if terminated or truncated:
-            info["normalized_reward"] = self.total_reward / self.total_steps
+            info["normalized_reward"] = self.sum_reward_norm / self.total_steps
 
         return observation, norm_rew, terminated, truncated, info
 

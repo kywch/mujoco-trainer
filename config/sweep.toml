@@ -4,7 +4,7 @@ policy_name = "CleanRLPolicy"
 
 [env]
 simp_norm_reward = true
-simp_norm_reward_bias = -0.5
+# simp_norm_reward_bias = -0.5
 
 [policy]
 
