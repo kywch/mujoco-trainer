@@ -150,15 +150,16 @@ def carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn, disable_wandb=Fal
         args["train"].update(train_suggestion)
 
         # These might be needed later
-        # env_suggestion = {k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("env-")}
-        # args["env"].update(env_suggestion)
+        env_suggestion = {k.split("-")[1]: v for k, v in suggestion.items() if k.startswith("env-")}
+        args["env"].update(env_suggestion)
 
         args["track"] = True
-        wandb.config.update({"train": args["train"]}, allow_val_change=True)
+        wandb.config.update({"train": args["train"], "env": args["env"]}, allow_val_change=True)
 
-        print("\nTrain config:", wandb.config.train, "\n")
-        # print(wandb.config.env)
+        print("\nTrain config:", wandb.config.train)
+        print("\nEnv config:", wandb.config.env, "\n")
         # print(wandb.config.policy)
+
         stats, uptime, is_success = {}, 0, False
         try:
             # stats, uptime = train(args, make_env, policy_cls, rnn_cls, wandb, skip_dash=True)

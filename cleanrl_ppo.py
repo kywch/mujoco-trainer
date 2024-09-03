@@ -26,7 +26,7 @@ if __name__ == "__main__":
     args.wandb_project = args_dict["wandb_project"]
     args.wandb_group = args_dict["wandb_group"]
     args.track = args_dict["track"]
-    args.capture_video = args_dict["capture_video"]
+    args.capture_video = False  # args_dict["capture_video"]
     args.cuda = args_dict["train"]["device"] == "cuda"
     if not hasattr(args, "target_kl"):
         args.target_kl = None

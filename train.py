@@ -58,12 +58,12 @@ def parse_args():
     parser.add_argument(
         "--mode",
         type=str,
-        default="video",
+        default="sweep",
         choices="train video sweep autotune profile".split(),
     )
     # parser.add_argument("--eval-model-path", type=str, default=None)
     parser.add_argument(
-        "--eval-model-path", type=str, default="experiments/Humanoid-v4-1381e5b8/model_000103.pt"
+        "--eval-model-path", type=str, default="experiments/Ant-v5-380ce758/model_000136.pt"
     )
 
     parser.add_argument(
@@ -86,7 +86,6 @@ def parse_args():
         "--repeat", type=int, default=1, help="Repeat the training with different seeds"
     )
     parser.add_argument("-d", "--device", type=str, default=None)
-
     # parser.add_argument("--capture-video", action="store_true", help="Capture videos")
 
     args = parser.parse_known_args()[0]
@@ -130,9 +129,6 @@ def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
         vec = pufferlib.vector.Multiprocessing
     else:
         raise ValueError("Invalid --vector (serial/multiprocessing).")
-
-    # NOTE: Do NOT capture videos during training. It slows down training too much.
-    assert args["capture_video"] is False, "Video capture is not supported during training"
 
     vecenv = pufferlib.vector.make(
         env_creator,
@@ -209,9 +205,6 @@ if __name__ == "__main__":
     if args["device"] is not None:
         args["train"]["device"] = args["device"]
 
-    # NO video capture during train. It slows down training too much.
-    args["capture_video"] = True if args["mode"] == "video" else False
-
     # Load env binding and policy
     env_creator = environment.pufferl_env_creator(env_name, run_name, args)
     policy_cls = getattr(policy, args["base"]["policy_name"])
@@ -254,7 +247,6 @@ if __name__ == "__main__":
         )
 
     elif args["mode"] == "sweep":
-        args["capture_video"] = False
         env_creator = environment.pufferl_env_creator(env_name, run_name, args)
         sweep_carbs(args, env_name, env_creator, policy_cls, rnn_cls)
 

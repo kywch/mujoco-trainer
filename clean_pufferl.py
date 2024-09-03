@@ -663,6 +663,8 @@ def rollout(
 
         ob, reward, done, truncated, infos = driver.step(action[0])
 
+        ep_reward += infos["raw_reward"]
+
         rgb_array = driver.render()
 
         # Add episode, reward and tick to the image
@@ -675,9 +677,7 @@ def rollout(
         # print(f"Reward: {reward:.4f}, Tick: {tick}, Done: {done}")
         # print(f"Next action: {action[0]}")
 
-        ep_reward += reward
-
-        reward_hist.append(reward)
+        reward_hist.append(infos["raw_reward"])
         if tick % 100 == 0:
             print(f"The avg of last 100 rewards: { np.mean(reward_hist) }")
 
