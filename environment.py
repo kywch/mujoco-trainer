@@ -167,6 +167,9 @@ class SimpleNormalizeReward(gymnasium.Wrapper):
         norm_rew = (reward - self.sum_reward_raw / self.total_steps) * self.scale
         self.sum_reward_norm += norm_rew
 
+        if terminated:
+            norm_rew = -1.0
+
         if terminated or truncated:
             info["normalized_reward"] = self.sum_reward_norm / self.total_steps
 
