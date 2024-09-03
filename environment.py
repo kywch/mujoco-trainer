@@ -162,6 +162,8 @@ class SimpleNormalizeReward(gymnasium.Wrapper):
 
         self.total_steps += 1
         self.sum_reward_raw += reward
+
+        # TODO: try exponential moving average with alpha as a hyperparameter
         norm_rew = (reward - self.sum_reward_raw / self.total_steps) * self.scale
         self.sum_reward_norm += norm_rew
 

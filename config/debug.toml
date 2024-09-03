@@ -81,8 +81,8 @@ vf_clip_coef = { min = 0.0, max = 1.0 }
 ent_coef = { min = 1e-4, max = 0.05 }
 # max_grad_norm = { min = 0.0, max = 10.0 }
 
-[sweep.parameters.env.parameters]
-simp_norm_reward_bias = { min = -10.0, max = 20.0 }
+# [sweep.parameters.env.parameters]
+# simp_norm_reward_bias = { min = -10.0, max = 20.0 }
 
 [carbs]
 # Special cases, the scale of which are different from above
@@ -105,4 +105,4 @@ vf_clip_coef = { space = "logit", search_center = 0.5 }
 ent_coef = { space = "log", search_center = 0.002 }
 # max_grad_norm = { space = "linear", search_center = 0.5 }
 
-simp_norm_reward_bias = { space = "linear", search_center = 0.0 }
+# simp_norm_reward_bias = { space = "linear", search_center = 0.0 }

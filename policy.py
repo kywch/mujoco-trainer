@@ -18,15 +18,41 @@ class Debug(pufferlib.models.Default):
         super().__init__(env, hidden_size)
 
 
+# This replaces gymnasium's NormalizeObservation wrapper
+class RunningNorm(nn.Module):
+    def __init__(self, shape, epsilon=1e-5, clip=10.0):
+        super().__init__()
+        self.register_buffer("running_mean", torch.zeros(shape))
+        self.register_buffer("running_var", torch.ones(shape))
+        self.register_buffer("count", torch.ones(1))
+        self.epsilon = epsilon
+        self.clip = clip
+
+    def forward(self, x):
+        if self.training:
+            mean = x.mean(0)
+            var = x.var(0, unbiased=False)
+            self.running_mean = self.running_mean * (1 - 1 / self.count) + mean * (1 / self.count)
+            self.running_var = self.running_var * (1 - 1 / self.count) + var * (1 / self.count)
+            self.count += 1
+
+        normalized = (x - self.running_mean) / torch.sqrt(self.running_var + self.epsilon)
+        return torch.clamp(normalized, -self.clip, self.clip)
+
+
+# TODO: test 128 width, with the lstm
 class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
     def __init__(self, envs, hidden_size=64):
         super().__init__(policy=None)  # Just to get the right init
         self.is_continuous = True
 
+        obs_size = np.array(envs.single_observation_space.shape).prod()
+        action_size = np.prod(envs.single_action_space.shape)
+
+        self.obs_norm = RunningNorm(obs_size)
+
         self.critic = nn.Sequential(
-            layer_init(
-                nn.Linear(np.array(envs.single_observation_space.shape).prod(), hidden_size)
-            ),
+            layer_init(nn.Linear(obs_size, hidden_size)),
             nn.Tanh(),
             layer_init(nn.Linear(hidden_size, hidden_size)),
             nn.Tanh(),
@@ -34,26 +60,22 @@ class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
         )
 
         self.actor_encoder = nn.Sequential(
-            layer_init(
-                nn.Linear(np.array(envs.single_observation_space.shape).prod(), hidden_size)
-            ),
+            layer_init(nn.Linear(obs_size, hidden_size)),
             nn.Tanh(),
             layer_init(nn.Linear(hidden_size, hidden_size)),
             nn.Tanh(),
         )
-        self.actor_decoder_mean = layer_init(
-            nn.Linear(hidden_size, np.prod(envs.single_action_space.shape)), std=0.01
-        )
-        self.actor_decoder_logstd = nn.Parameter(
-            torch.zeros(1, np.prod(envs.single_action_space.shape))
-        )
+        self.actor_decoder_mean = layer_init(nn.Linear(hidden_size, action_size), std=0.01)
+        self.actor_decoder_logstd = nn.Parameter(torch.zeros(1, action_size))
 
     def get_value(self, x):
         x = x.float()
+        x = self.obs_norm(x)
         return self.critic(x)
 
     def get_action_and_value(self, x, action=None):
         x = x.float()
+        x = self.obs_norm(x)
         batch = x.shape[0]
 
         encoding = self.actor_encoder(x)

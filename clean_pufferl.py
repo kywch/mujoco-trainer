@@ -96,6 +96,8 @@ def evaluate(data):
 
     with profile.eval_misc:
         policy = data.policy
+        # Freeze the Norm layers
+        policy.eval()
         infos = defaultdict(list)
         lstm_h, lstm_c = experience.lstm_h, experience.lstm_c
 
@@ -169,6 +171,7 @@ def train(data):
     losses = data.losses
 
     with profile.train_misc:
+        data.policy.train()
         idxs = experience.sort_training_data()
         dones_np = experience.dones_np[idxs]
         values_np = experience.values_np[idxs]
@@ -641,8 +644,10 @@ def rollout(
 
     assert model_path is not None, "model_path must be provided for rollout"
     agent = torch.load(model_path, map_location=device)
+    agent.eval()
 
     ob, _ = env.reset(seed=int(time.time()))
+    obs_list = [ob.squeeze()]
     driver = env.driver_env.env
     state = None
 
@@ -662,6 +667,7 @@ def rollout(
             action = action.cpu().numpy().reshape(env.action_space.shape)
 
         ob, reward, done, truncated, infos = driver.step(action[0])
+        obs_list.append(ob)
 
         ep_reward += infos["raw_reward"]
 
@@ -690,6 +696,13 @@ def rollout(
     # Save the video file to the model path
     video_name = f"{model_path.split('.pt')[0]}_video.mp4"
     create_video(frames, video_name, fps=30)
+
+    # Get some basic stats on obs, to see if it needs some preprocessing
+    obs_mat = np.vstack(obs_list)
+    print(f"Max abs col mean: {abs(obs_mat.mean(axis=1)).max()}")
+    print(f"Max abs col std: {obs_mat.std(axis=1).max()}")
+    print(f"Min and max obs: {obs_mat.min()}, {obs_mat.max()}")
+    # Ant-v5: min/max obs = -16, 15 ... looks ok for now  or maybe /10?
 
 
 def seed_everything(seed, torch_deterministic):
