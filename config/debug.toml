@@ -1,6 +1,6 @@
 [base]
-policy_name = "CleanRLPolicy"
-# rnn_name = "Recurrent"  # Assign a value when needed.
+policy_name = "Debug"  # "CleanRLPolicy"
+rnn_name = "Recurrent"  # Assign a value when needed.
 
 [env]
 simp_norm_reward = true

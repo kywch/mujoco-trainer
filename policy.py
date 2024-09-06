@@ -8,9 +8,9 @@ import pufferlib.frameworks.cleanrl
 from pufferlib.pytorch import layer_init
 
 
-# class Recurrent(pufferlib.models.LSTMWrapper):
-#     def __init__(self, env, policy, input_size=128, hidden_size=128, num_layers=1):
-#         super().__init__(env, policy, input_size, hidden_size, num_layers)
+class Recurrent(pufferlib.models.LSTMWrapper):
+    def __init__(self, env, policy, input_size=64, hidden_size=64, num_layers=1):
+        super().__init__(env, policy, input_size, hidden_size, num_layers)
 
 
 class Debug(pufferlib.models.Default):
@@ -38,6 +38,32 @@ class RunningNorm(nn.Module):
 
         normalized = (x - self.running_mean) / torch.sqrt(self.running_var + self.epsilon)
         return torch.clamp(normalized, -self.clip, self.clip)
+
+
+# This can wait
+# class RunningNorm(nn.Module):
+#     def __init__(self, shape, epsilon=1e-5, clip=10.0):
+#         super().__init__()
+#         self.register_buffer("running_mean", torch.zeros(shape))
+#         self.register_buffer("running_var", torch.ones(shape))
+#         self.count = 1
+#         self.epsilon = epsilon
+#         self.clip = clip
+
+#     def forward(self, x):
+#         if self.training:
+#             with torch.no_grad():
+#                 mean = x.mean(0)
+#                 var = x.var(0, unbiased=False)
+#                 self.running_mean = self.running_mean * (1 - 1 / self.count) + mean * (1 / self.count)
+#                 self.running_var = self.running_var * (1 - 1 / self.count) + var * (1 / self.count)
+#                 self.count += 1
+
+#         return torch.clamp(
+#             (x - self.running_mean) / torch.sqrt(self.running_var + self.epsilon),
+#             min=-self.clip,
+#             max=self.clip
+#         ).float()
 
 
 # TODO: test 128 width, with the lstm
