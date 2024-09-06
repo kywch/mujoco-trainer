@@ -18,54 +18,6 @@ class Debug(pufferlib.models.Default):
         super().__init__(env, hidden_size)
 
 
-# This replaces gymnasium's NormalizeObservation wrapper
-class RunningNorm(nn.Module):
-    def __init__(self, shape, epsilon=1e-5, clip=10.0):
-        super().__init__()
-        self.register_buffer("running_mean", torch.zeros(shape))
-        self.register_buffer("running_var", torch.ones(shape))
-        self.register_buffer("count", torch.ones(1))
-        self.epsilon = epsilon
-        self.clip = clip
-
-    def forward(self, x):
-        if self.training:
-            mean = x.mean(0)
-            var = x.var(0, unbiased=False)
-            self.running_mean = self.running_mean * (1 - 1 / self.count) + mean * (1 / self.count)
-            self.running_var = self.running_var * (1 - 1 / self.count) + var * (1 / self.count)
-            self.count += 1
-
-        normalized = (x - self.running_mean) / torch.sqrt(self.running_var + self.epsilon)
-        return torch.clamp(normalized, -self.clip, self.clip)
-
-
-# This can wait
-# class RunningNorm(nn.Module):
-#     def __init__(self, shape, epsilon=1e-5, clip=10.0):
-#         super().__init__()
-#         self.register_buffer("running_mean", torch.zeros(shape))
-#         self.register_buffer("running_var", torch.ones(shape))
-#         self.count = 1
-#         self.epsilon = epsilon
-#         self.clip = clip
-
-#     def forward(self, x):
-#         if self.training:
-#             with torch.no_grad():
-#                 mean = x.mean(0)
-#                 var = x.var(0, unbiased=False)
-#                 self.running_mean = self.running_mean * (1 - 1 / self.count) + mean * (1 / self.count)
-#                 self.running_var = self.running_var * (1 - 1 / self.count) + var * (1 / self.count)
-#                 self.count += 1
-
-#         return torch.clamp(
-#             (x - self.running_mean) / torch.sqrt(self.running_var + self.epsilon),
-#             min=-self.clip,
-#             max=self.clip
-#         ).float()
-
-
 # Difference between CleanRL and PufferRL policies is that
 # CleanRL has seperate actor and critic networks, while
 # PufferRL has a single encoding network that is shared between
@@ -78,7 +30,9 @@ class Policy(torch.nn.Module):
         obs_size = np.array(env.single_observation_space.shape).prod()
         action_size = np.prod(env.single_action_space.shape)
 
-        self.obs_norm = RunningNorm(obs_size)
+        self.obs_norm = nn.BatchNorm1d(
+            obs_size, momentum=None
+        )  # Using simple average with momentum=None
 
         self.actor_encoder = nn.Sequential(
             layer_init(nn.Linear(obs_size, hidden_size)),
@@ -105,7 +59,8 @@ class Policy(torch.nn.Module):
     def encode_observations(self, observations):
         """Encodes a batch of observations into hidden states. Assumes
         no time dimension (handled by LSTM wrappers)."""
-        observations = self.obs_norm(observations).float()
+        observations = observations.float()
+        observations = self.obs_norm(observations)
         batch_size = observations.shape[0]
         observations = observations.view(batch_size, -1)
         return self.actor_encoder(observations), None
@@ -133,7 +88,9 @@ class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
         obs_size = np.array(envs.single_observation_space.shape).prod()
         action_size = np.prod(envs.single_action_space.shape)
 
-        self.obs_norm = RunningNorm(obs_size)
+        self.obs_norm = nn.BatchNorm1d(
+            obs_size, momentum=None
+        )  # Using simple average with momentum=None
 
         self.critic = nn.Sequential(
             layer_init(nn.Linear(obs_size, hidden_size)),

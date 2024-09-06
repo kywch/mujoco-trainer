@@ -144,18 +144,27 @@ class EpisodeStats(gymnasium.Wrapper):
 
 
 class SimpleNormalizeReward(gymnasium.Wrapper):
-    def __init__(self, env, scale=0.1):
+    def __init__(self, env, scale=0.1, traj_history_len=100):
         self.env = env
         self.observation_space = env.observation_space
         self.action_space = env.action_space
-        self.reset()
 
-        self.scale = scale
+        self.reward_scale = scale
 
         # To get average reward
         self.sum_reward_raw = 0
         self.sum_reward_norm = 0
         self.total_steps = 1  # to avoid division by zero
+
+        # For early termination
+        self.traj_rewards = deque(maxlen=traj_history_len)
+        self.early_terminiation_lookback = traj_history_len
+
+        self.reset()
+
+    def reset(self, **kwargs):
+        self.traj_rewards.clear()
+        return super().reset(**kwargs)
 
     def step(self, action):
         observation, reward, terminated, truncated, info = super().step(action)
@@ -164,8 +173,17 @@ class SimpleNormalizeReward(gymnasium.Wrapper):
         self.sum_reward_raw += reward
 
         # TODO: try exponential moving average with alpha as a hyperparameter
-        norm_rew = (reward - self.sum_reward_raw / self.total_steps) * self.scale
+        norm_rew = (reward - self.sum_reward_raw / self.total_steps) * self.reward_scale
         self.sum_reward_norm += norm_rew
+
+        # Check for early termination
+        # NOTE: In cheetah, agents were keep getting negative rew, leading to policy collapse?
+        self.traj_rewards.append(reward)
+        if (
+            len(self.traj_rewards) >= self.early_terminiation_lookback
+            and sum(self.traj_rewards) < 0
+        ):
+            terminated = True
 
         if terminated:
             norm_rew = -1.0
