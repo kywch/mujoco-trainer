@@ -66,6 +66,64 @@ class RunningNorm(nn.Module):
 #         ).float()
 
 
+# Difference between CleanRL and PufferRL policies is that
+# CleanRL has seperate actor and critic networks, while
+# PufferRL has a single encoding network that is shared between
+# the actor and critic networks
+class Policy(torch.nn.Module):
+    def __init__(self, env, hidden_size=64):
+        super().__init__()
+        self.is_continuous = True
+
+        obs_size = np.array(env.single_observation_space.shape).prod()
+        action_size = np.prod(env.single_action_space.shape)
+
+        self.obs_norm = RunningNorm(obs_size)
+
+        self.actor_encoder = nn.Sequential(
+            layer_init(nn.Linear(obs_size, hidden_size)),
+            nn.Tanh(),
+            layer_init(nn.Linear(hidden_size, hidden_size)),
+            nn.Tanh(),
+        )
+
+        self.actor_decoder_mean = layer_init(nn.Linear(hidden_size, action_size), std=0.01)
+        self.actor_decoder_logstd = nn.Parameter(torch.zeros(1, action_size))
+
+        self.value_head = nn.Sequential(
+            layer_init(nn.Linear(hidden_size, hidden_size)),
+            nn.Tanh(),
+            layer_init(nn.Linear(hidden_size, 1), std=1.0),
+        )
+
+    def forward(self, observations):
+        hidden, lookup = self.encode_observations(observations)
+        actions, value = self.decode_actions(hidden, lookup)
+        return actions, value
+
+    # NOTE: these are for the LSTM wrapper, which may NOT work as intended
+    def encode_observations(self, observations):
+        """Encodes a batch of observations into hidden states. Assumes
+        no time dimension (handled by LSTM wrappers)."""
+        observations = self.obs_norm(observations).float()
+        batch_size = observations.shape[0]
+        observations = observations.view(batch_size, -1)
+        return self.actor_encoder(observations), None
+
+    def decode_actions(self, hidden, lookup, concat=True):
+        """Decodes a batch of hidden states into continuous actions.
+        Assumes no time dimension (handled by LSTM wrappers)."""
+        value = self.value_head(hidden)
+
+        mean = self.actor_decoder_mean(hidden)
+        logstd = self.actor_decoder_logstd.expand_as(mean)
+        std = torch.exp(logstd)
+        probs = torch.distributions.Normal(mean, std)
+        # batch = hidden.shape[0]
+
+        return probs, value
+
+
 # TODO: test 128 width, with the lstm
 class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
     def __init__(self, envs, hidden_size=64):

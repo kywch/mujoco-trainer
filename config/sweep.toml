@@ -1,5 +1,5 @@
 [base]
-policy_name = "Debug"  # "CleanRLPolicy"
+policy_name = "Policy"  # "Debug"  # "CleanRLPolicy"
 rnn_name = "Recurrent"  # Assign a value when needed.
 
 [env]
