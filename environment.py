@@ -85,6 +85,7 @@ def pufferl_env_creator(env_name, run_name, args_dict, **env_kwargs):
         "capture_video": capture_video,
         "pufferl": True,
         "rms_norm_reward": not use_simp_norm_reward,
+        "rms_norm_reward_gamma": args_dict["train"]["gamma"],
         "simp_norm_reward": use_simp_norm_reward,
     }
     default_kwargs.update(env_kwargs)

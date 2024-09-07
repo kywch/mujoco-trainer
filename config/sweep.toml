@@ -1,9 +1,9 @@
 [base]
-policy_name = "Policy"  # "Debug"  # "CleanRLPolicy"
-rnn_name = "Recurrent"  # Assign a value when needed.
+policy_name = "CleanRLPolicy"
+# rnn_name = "Recurrent"  # Assign a value when needed.
 
 [env]
-simp_norm_reward = true
+simp_norm_reward = false
 # simp_norm_reward_bias = -0.5
 
 [policy]
