@@ -79,6 +79,74 @@ class Policy(torch.nn.Module):
         return probs, value
 
 
+class SepCriticLSTM(pufferlib.models.LSTMWrapper):
+    def __init__(self, env, policy, input_size=64, hidden_size=64, num_layers=1):
+        super().__init__(env, policy, input_size, hidden_size, num_layers)
+
+    def forward(self, x, state):
+        x = x.float()
+        hidden, _, state = super().forward(x, state)
+        value = self.policy.critic(x.reshape(-1, self.policy.obs_size))
+        return hidden, value, state
+
+
+class SepCriticPolicy(torch.nn.Module):
+    def __init__(self, env, hidden_size=64):
+        super().__init__()
+        self.is_continuous = True
+
+        self.obs_size = np.array(env.single_observation_space.shape).prod()
+        action_size = np.prod(env.single_action_space.shape)
+
+        self.actor_encoder = nn.Sequential(
+            nn.BatchNorm1d(self.obs_size, momentum=None),  # obs norm
+            layer_init(nn.Linear(self.obs_size, hidden_size)),
+            nn.Tanh(),
+            layer_init(nn.Linear(hidden_size, hidden_size)),
+            nn.Tanh(),
+        )
+
+        self.actor_decoder_mean = layer_init(nn.Linear(hidden_size, action_size), std=0.01)
+        self.actor_decoder_logstd = nn.Parameter(torch.zeros(1, action_size))
+
+        self.critic = nn.Sequential(
+            nn.BatchNorm1d(self.obs_size, momentum=None),  # obs norm
+            layer_init(nn.Linear(self.obs_size, hidden_size)),
+            nn.Tanh(),
+            layer_init(nn.Linear(hidden_size, hidden_size)),
+            nn.Tanh(),
+            layer_init(nn.Linear(hidden_size, 1), std=1.0),
+        )
+
+    def forward(self, observations):
+        observations = observations.float()
+        hidden, lookup = self.encode_observations(observations)
+        actions, _ = self.decode_actions(hidden, lookup)
+        value = self.critic(observations)
+        return actions, value
+
+    def encode_observations(self, observations):
+        """Encodes a batch of observations into hidden states. Assumes
+        no time dimension (handled by LSTM wrappers)."""
+        batch_size = observations.shape[0]
+        observations = observations.view(batch_size, -1)
+        return self.actor_encoder(observations), None
+
+    def decode_actions(self, hidden, lookup, concat=True):
+        """Decodes a batch of hidden states into continuous actions.
+        Assumes no time dimension (handled by LSTM wrappers)."""
+        # value = self.value_head(hidden)
+
+        mean = self.actor_decoder_mean(hidden)
+        logstd = self.actor_decoder_logstd.expand_as(mean)
+        std = torch.exp(logstd)
+        probs = torch.distributions.Normal(mean, std)
+        # batch = hidden.shape[0]
+
+        # NOTE: Value is computed elsewhere. The below mean is just a hack to get the shape right
+        return probs, mean[:, 0]
+
+
 # TODO: test 128 width, with the lstm
 class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
     def __init__(self, envs, hidden_size=64):
