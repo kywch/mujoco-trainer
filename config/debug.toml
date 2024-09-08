@@ -40,7 +40,7 @@ batch_size = 2048
 minibatch_size = 32
 bptt_horizon = 1
 
-compile = true
+compile = false
 compile_mode = "reduce-overhead"
 
 total_timesteps = 10_000

@@ -8,6 +8,33 @@ import pufferlib.frameworks.cleanrl
 from pufferlib.pytorch import layer_init
 
 
+# This replaces gymnasium's NormalizeObservation wrapper
+# NOTE: Tried BatchNorm1d with momentum=None, but the policy did not learn. Check again later.
+class RunningNorm(nn.Module):
+    def __init__(self, shape, epsilon=1e-5, clip=10.0):
+        super().__init__()
+        self.register_buffer("running_mean", torch.zeros(shape))
+        self.register_buffer("running_var", torch.ones(shape))
+        self.count = 1
+        self.epsilon = epsilon
+        self.clip = clip
+
+    def forward(self, x):
+        if self.training:
+            mean = x.mean(0)
+            var = x.var(0, unbiased=False)
+            weight = 1 / self.count
+            self.running_mean = self.running_mean * (1 - weight) + mean * weight
+            self.running_var = self.running_var * (1 - weight) + var * weight
+            self.count += 1
+
+        return torch.clamp(
+            (x - self.running_mean) / torch.sqrt(self.running_var + self.epsilon),
+            -self.clip,
+            self.clip,
+        )
+
+
 class Recurrent(pufferlib.models.LSTMWrapper):
     def __init__(self, env, policy, input_size=64, hidden_size=64, num_layers=1):
         super().__init__(env, policy, input_size, hidden_size, num_layers)
@@ -156,9 +183,7 @@ class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
         obs_size = np.array(envs.single_observation_space.shape).prod()
         action_size = np.prod(envs.single_action_space.shape)
 
-        self.obs_norm = nn.BatchNorm1d(
-            obs_size, momentum=None
-        )  # Using simple average with momentum=None
+        self.obs_norm = RunningNorm(obs_size)
 
         self.critic = nn.Sequential(
             layer_init(nn.Linear(obs_size, hidden_size)),
