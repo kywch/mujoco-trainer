@@ -126,7 +126,7 @@ class SepCriticPolicy(torch.nn.Module):
         action_size = np.prod(env.single_action_space.shape)
 
         self.actor_encoder = nn.Sequential(
-            nn.BatchNorm1d(self.obs_size, momentum=None),  # obs norm
+            RunningNorm(self.obs_size),
             layer_init(nn.Linear(self.obs_size, hidden_size)),
             nn.Tanh(),
             layer_init(nn.Linear(hidden_size, hidden_size)),
@@ -137,7 +137,7 @@ class SepCriticPolicy(torch.nn.Module):
         self.actor_decoder_logstd = nn.Parameter(torch.zeros(1, action_size))
 
         self.critic = nn.Sequential(
-            nn.BatchNorm1d(self.obs_size, momentum=None),  # obs norm
+            RunningNorm(self.obs_size),
             layer_init(nn.Linear(self.obs_size, hidden_size)),
             nn.Tanh(),
             layer_init(nn.Linear(hidden_size, hidden_size)),
