@@ -115,9 +115,9 @@ class EpisodeStats(gymnasium.Wrapper):
         self.total_reward = 0
         self.total_steps = 0
 
-        # For early termination
-        self.traj_rewards = deque(maxlen=traj_history_len)
-        self.early_terminiation_lookback = traj_history_len
+        # # For early termination
+        # self.traj_rewards = deque(maxlen=traj_history_len)
+        # self.early_terminiation_lookback = traj_history_len
 
         self.reset()
 
@@ -139,14 +139,14 @@ class EpisodeStats(gymnasium.Wrapper):
         self.info["episode_return"] += reward
         self.info["episode_length"] += 1
 
-        # Check for early termination
-        # NOTE: In cheetah, agents were keep getting negative rew, leading to policy collapse?
-        self.traj_rewards.append(reward)
-        if (
-            len(self.traj_rewards) >= self.early_terminiation_lookback
-            and sum(self.traj_rewards) < 0
-        ):
-            terminated = True
+        # # Check for early termination
+        # # NOTE: In cheetah, agents were keep getting negative rew, leading to policy collapse?
+        # self.traj_rewards.append(reward)
+        # if (
+        #     len(self.traj_rewards) >= self.early_terminiation_lookback
+        #     and sum(self.traj_rewards) < 0
+        # ):
+        #     terminated = True
 
         if terminated or truncated:
             self.episode_results.append(self.info["episode_return"])
