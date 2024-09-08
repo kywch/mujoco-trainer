@@ -123,7 +123,7 @@ class EpisodeStats(gymnasium.Wrapper):
 
     def reset(self, seed=None, options=None):
         self.info = dict(episode_return=0, episode_length=0)
-        self.traj_rewards.clear()
+        # self.traj_rewards.clear()
         return self.env.reset(seed=seed, options=options)
 
     def step(self, action):
