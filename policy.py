@@ -57,11 +57,8 @@ class Policy(torch.nn.Module):
         obs_size = np.array(env.single_observation_space.shape).prod()
         action_size = np.prod(env.single_action_space.shape)
 
-        self.obs_norm = nn.BatchNorm1d(
-            obs_size, momentum=None
-        )  # Using simple average with momentum=None
-
-        self.actor_encoder = nn.Sequential(
+        self.obs_encoder = nn.Sequential(
+            RunningNorm(obs_size),
             layer_init(nn.Linear(obs_size, hidden_size)),
             nn.Tanh(),
             layer_init(nn.Linear(hidden_size, hidden_size)),
@@ -87,10 +84,9 @@ class Policy(torch.nn.Module):
         """Encodes a batch of observations into hidden states. Assumes
         no time dimension (handled by LSTM wrappers)."""
         observations = observations.float()
-        observations = self.obs_norm(observations)
         batch_size = observations.shape[0]
         observations = observations.view(batch_size, -1)
-        return self.actor_encoder(observations), None
+        return self.obs_encoder(observations), None
 
     def decode_actions(self, hidden, lookup, concat=True):
         """Decodes a batch of hidden states into continuous actions.
