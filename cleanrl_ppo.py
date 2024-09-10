@@ -17,8 +17,8 @@ if __name__ == "__main__":
     from utils import init_wandb
     from train import parse_args
 
-    args_dict, env_name, run_name = parse_args()
-    run_name = "cleanrl_" + run_name
+    args_dict, env_name = parse_args()
+    run_name = f"cleanrl_{env_name}_{args_dict['train']['seed']}_{int(time.time())}"
 
     # Translate puffer args to cleanrl args
     args = SimpleNamespace(**args_dict["train"])
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     # env setup
     envs = gymnasium.vector.SyncVectorEnv(
         [
-            cleanrl_env_creator(args.env_id, run_name, args.capture_video, args.gamma, i)
+            cleanrl_env_creator(args.env_id, args.capture_video, args.gamma, i)
             for i in range(args.num_envs)
         ]
     )

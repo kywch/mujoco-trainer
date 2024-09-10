@@ -1,5 +1,5 @@
 # from pdb import set_trace as T
-
+import time
 import functools
 from collections import deque
 
@@ -14,8 +14,8 @@ import updated_envs  # noqa  # register the mujoco v5 envs
 
 def single_env_creator(
     env_name,
-    run_name,
     capture_video,
+    video_dir=None,
     idx=None,
     norm_obs=False,  # to be removed
     pufferl=False,
@@ -28,8 +28,10 @@ def single_env_creator(
 ):
     # Allow video capture only during eval
     if capture_video is True and idx == 0:
+        if video_dir is None:
+            video_dir = f"{env_name}_{int(time.time())}"
         env = gymnasium.make(env_name, render_mode="rgb_array", width=240, height=240)
-        env = gymnasium.wrappers.RecordVideo(env, f"videos/{run_name}")
+        env = gymnasium.wrappers.RecordVideo(env, f"videos/{video_dir}")
     else:
         env = gymnasium.make(env_name)
 
@@ -56,10 +58,9 @@ def single_env_creator(
     return env
 
 
-def cleanrl_env_creator(env_name, run_name, capture_video, gamma, idx):
+def cleanrl_env_creator(env_name, capture_video, gamma, idx):
     kwargs = {
         "env_name": env_name,
-        "run_name": run_name,
         "capture_video": capture_video,
         "idx": idx,
         "norm_obs": True,
@@ -71,7 +72,7 @@ def cleanrl_env_creator(env_name, run_name, capture_video, gamma, idx):
     return functools.partial(single_env_creator, **kwargs)
 
 
-def pufferl_env_creator(env_name, run_name, args_dict, **env_kwargs):
+def pufferl_env_creator(env_name, args_dict, **env_kwargs):
     capture_video = args_dict["mode"] == "video"
 
     if "simp_norm_reward" in args_dict["env"]:
@@ -81,7 +82,6 @@ def pufferl_env_creator(env_name, run_name, args_dict, **env_kwargs):
 
     default_kwargs = {
         "env_name": env_name,
-        "run_name": run_name,
         "capture_video": capture_video,
         "pufferl": True,
         "rms_norm_reward": not use_simp_norm_reward,

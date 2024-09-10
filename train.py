@@ -51,19 +51,19 @@ def parse_args():
         "-e",
         "--env-name",
         type=str,
-        default="Ant-v5",
+        default="Humanoid-v4",
         help="Name of specific environment to run",
     )
 
     parser.add_argument(
         "--mode",
         type=str,
-        default="sweep",
+        default="train",
         choices="train video sweep autotune profile".split(),
     )
     # parser.add_argument("--eval-model-path", type=str, default=None)
     parser.add_argument(
-        "--eval-model-path", type=str, default="experiments/Ant-v5-380ce758/model_000136.pt"
+        "--eval-model-path", type=str, default="experiments/HalfCheetah-v4-55d3f92e/model_000157.pt"
     )
 
     parser.add_argument(
@@ -117,9 +117,7 @@ def parse_args():
         except:  # noqa
             prev[subkey] = value
 
-    run_name = f"{env_name}_{args['train']['seed']}_{int(time.time())}"
-
-    return args, env_name, run_name
+    return args, env_name
 
 
 def train(args, env_creator, policy_cls, rnn_cls, wandb=None, skip_dash=False):
@@ -199,14 +197,13 @@ def sweep_carbs(args, env_name, env_creator, policy_cls, rnn_cls):
 
 
 if __name__ == "__main__":
-    args, env_name, run_name = parse_args()
-    run_name = "pufferl_" + run_name
+    args, env_name = parse_args()
 
     if args["device"] is not None:
         args["train"]["device"] = args["device"]
 
     # Load env binding and policy
-    env_creator = environment.pufferl_env_creator(env_name, run_name, args)
+    env_creator = environment.pufferl_env_creator(env_name, args)
     policy_cls = getattr(policy, args["base"]["policy_name"])
     rnn_cls = None
     if "rnn_name" in args["base"]:
@@ -226,7 +223,8 @@ if __name__ == "__main__":
                 args["train"]["seed"] = random.randint(10_000_000, 99_999_999)
 
             if args["track"]:
-                wandb = init_wandb(args, run_name, id=i)
+                run_name = f"pufferl_{env_name}_{args['train']['seed']}_{int(time.time())}"
+                wandb = init_wandb(args, run_name)
             train(args, env_creator, policy_cls, rnn_cls, wandb=wandb)
 
     elif args["mode"] == "video":
@@ -247,7 +245,6 @@ if __name__ == "__main__":
         )
 
     elif args["mode"] == "sweep":
-        env_creator = environment.pufferl_env_creator(env_name, run_name, args)
         sweep_carbs(args, env_name, env_creator, policy_cls, rnn_cls)
 
     elif args["mode"] == "autotune":
