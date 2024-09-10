@@ -176,13 +176,13 @@ class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
         super().__init__(policy=None)  # Just to get the right init
         self.is_continuous = True
 
-        obs_size = np.array(envs.single_observation_space.shape).prod()
+        self.obs_size = np.array(envs.single_observation_space.shape).prod()
         action_size = np.prod(envs.single_action_space.shape)
 
-        self.obs_norm = RunningNorm(obs_size)
+        self.obs_norm = RunningNorm(self.obs_size)
 
         self.critic = nn.Sequential(
-            layer_init(nn.Linear(obs_size, hidden_size)),
+            layer_init(nn.Linear(self.obs_size, hidden_size)),
             nn.Tanh(),
             layer_init(nn.Linear(hidden_size, hidden_size)),
             nn.Tanh(),
@@ -190,7 +190,7 @@ class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
         )
 
         self.actor_encoder = nn.Sequential(
-            layer_init(nn.Linear(obs_size, hidden_size)),
+            layer_init(nn.Linear(self.obs_size, hidden_size)),
             nn.Tanh(),
             layer_init(nn.Linear(hidden_size, hidden_size)),
             nn.Tanh(),
@@ -223,3 +223,20 @@ class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
         logits_entropy = logits.entropy().sum(1)  # .view(batch, -1).sum(1)
 
         return action, log_probs, logits_entropy, self.critic(x)
+
+
+class RegCritPolicy(CleanRLPolicy):
+    def __init__(self, envs, hidden_size=64):
+        super().__init__(envs, hidden_size=hidden_size)
+
+        # Learn to walk in 20 min: https://arxiv.org/abs/2208.07860
+        # Used LayerNorm to regularize the critic
+        self.critic = nn.Sequential(
+            layer_init(nn.Linear(self.obs_size, hidden_size)),
+            nn.LayerNorm(hidden_size),
+            nn.Tanh(),
+            layer_init(nn.Linear(hidden_size, hidden_size)),
+            nn.LayerNorm(hidden_size),
+            nn.Tanh(),
+            layer_init(nn.Linear(hidden_size, 1), std=1.0),
+        )
