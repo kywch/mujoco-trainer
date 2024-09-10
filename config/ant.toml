@@ -1,27 +1,29 @@
 [base]
 policy_name = "CleanRLPolicy"
 
-# From https://wandb.ai/kywch/carbs/runs/6lwpqagr
+[env]
+simp_norm_reward = false
+
 [train]
 seed = 1
 torch_deterministic = true
 cpu_offload = false
 device = "cuda"
-learning_rate = 0.0005777595353493435
+learning_rate = 0.0001
 anneal_lr = false
-gamma = 0.9838324555417536
-gae_lambda = 0.7782845948538163
-update_epochs = 8
+gamma = 0.99
+gae_lambda = 0.75
+update_epochs = 10
 norm_adv = true
-clip_coef = 0.28654484839824146
+clip_coef = 0.5
 clip_vloss = true
-vf_coef = 1.2300177812576294
-vf_clip_coef = 0.9663969573561514
+vf_coef = 1.0
+vf_clip_coef = 0.5
 max_grad_norm = 0.5
-ent_coef = 0.000374745090906141
+ent_coef = 0.0001
 # target_kl = None  # Assign a value when needed.
 
-num_envs = 32
+num_envs = 64
 num_workers = 16
 env_batch_size = 16
 zero_copy = false
