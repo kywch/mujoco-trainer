@@ -135,8 +135,10 @@ class SepCriticPolicy(torch.nn.Module):
         self.critic = nn.Sequential(
             RunningNorm(self.obs_size),
             layer_init(nn.Linear(self.obs_size, hidden_size)),
+            nn.LayerNorm(hidden_size),
             nn.Tanh(),
             layer_init(nn.Linear(hidden_size, hidden_size)),
+            nn.LayerNorm(hidden_size),
             nn.Tanh(),
             layer_init(nn.Linear(hidden_size, 1), std=1.0),
         )
