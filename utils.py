@@ -137,7 +137,8 @@ def carbs_runner_fn(args, env_name, carbs, sweep_id, train_fn, disable_wandb=Fal
         # Correcting critical parameters before updating
         # train_suggestion["total_timesteps"] = int(train_suggestion["total_timesteps"] * 10**6)
         for key in ["batch_size", "bptt_horizon"]:
-            train_suggestion[key] = 2 ** round(train_suggestion[key])
+            if key in train_suggestion:
+                train_suggestion[key] = 2 ** round(train_suggestion[key])
         train_suggestion["update_epochs"] = round(train_suggestion["update_epochs"])
 
         # CARBS minibatch_size is actually the number of minibatches
