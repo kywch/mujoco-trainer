@@ -1,0 +1,110 @@
+[base]
+policy_name = "RegCritPolicy"
+# rnn_name = "Recurrent"  # Assign a value when needed.
+
+[env]
+simp_norm_reward = false
+# simp_norm_reward_bias = -0.5
+
+[policy]
+
+[rnn]
+
+[train]
+seed = 1
+torch_deterministic = true
+cpu_offload = false
+device = "cuda"
+learning_rate = 3e-4
+anneal_lr = false
+gamma = 0.99
+gae_lambda = 0.75
+update_epochs = 10
+norm_adv = true
+clip_coef = 0.5
+clip_vloss = true
+vf_coef = 1.0
+vf_clip_coef = 0.5
+max_grad_norm = 0.5
+ent_coef = 0.0001
+# target_kl = None  # Assign a value when needed.
+
+num_envs = 64
+num_workers = 16
+env_batch_size = 16
+zero_copy = false
+data_dir = "experiments"
+checkpoint_interval = 1000
+batch_size = 2048
+minibatch_size = 512
+bptt_horizon = 16
+
+total_timesteps = 6_000_000
+
+# Check if the results are the same before compiling
+compile = false
+compile_mode = "reduce-overhead"
+
+# Extra steps to evaluate the agent after training
+eval_timesteps = 640_000
+
+
+### Sweep related parameters
+
+num_sweeps = 500
+
+[sweep]
+method = "bayes"
+name = "sweep"
+
+[sweep.metric]
+goal = "maximize"
+name = "environment/episode_return"
+
+[sweep.parameters.train.parameters]
+# num_envs = { min = 16, max = 64 }
+
+# NOTE: These are differently handled by CARBS
+# If the sampled params are out of range, the wandb sweep crashes
+# total_timesteps = { min = 1_000_000, max = 100_000_000 }
+batch_size = { min = 1, max = 2_000_000 }
+num_minibatches = { min = 1, max = 10000 }
+# minibatch_size = { min = 1, max = 2_000_000 }
+# bptt_horizon = { min = 1, max = 32 }
+
+# These' scales are good for CARBS
+learning_rate = { min = 1e-5, max = 1e-1 }
+# gamma = { min = 0.0, max = 1.0 }
+# gae_lambda = { min = 0.0, max = 1.0 }
+update_epochs = { min = 1, max = 15 }
+# clip_coef = { min = 0.0, max = 1.0 }
+# vf_coef = { min = 0.0, max = 10.0 }
+#vf_clip_coef = { min = 0.0, max = 1.0 }
+ent_coef = { min = 1e-4, max = 0.05 }
+# max_grad_norm = { min = 0.0, max = 10.0 }
+
+# [sweep.parameters.env.parameters]
+# simp_norm_reward_bias = { min = -10.0, max = 20.0 }
+
+[carbs]
+# Special cases, the scale of which are different from above
+# NOTE: The actual values of batch_size, num_minibatches, bptt_horizon are 2**suggested
+# These parameters need to be processed before used in training
+# total_timesteps = { min = 1_000_000, max = 10_000_000, space = "log", search_center = 1_000_000, is_integer = true }
+batch_size = { min = 13, max = 20, space = "linear", search_center = 14 }
+num_minibatches = { min = 1, max = 10, space = "linear", search_center = 3 }
+# minibatch_size = { min = 1, max = 10, space = "linear", search_center = 4 }
+# bptt_horizon = { min = 1, max = 5, space = "linear", search_center = 4 }
+
+# Others: append min/max from wandb param to carbs param
+learning_rate = { space = "log", search_center = 2e-3 }
+# gamma = { space = "logit", search_center = 0.99 }
+# gae_lambda = { space = "logit", search_center = 0.75 }
+update_epochs = { space = "log", search_center = 5 }
+# clip_coef = { space = "logit", search_center = 0.5 }
+# vf_coef = { space = "linear", search_center = 1.0 }
+#vf_clip_coef = { space = "logit", search_center = 0.5 }
+ent_coef = { space = "log", search_center = 0.0001 }
+# max_grad_norm = { space = "linear", search_center = 0.5 }
+
+# simp_norm_reward_bias = { space = "linear", search_center = 0.0 }
