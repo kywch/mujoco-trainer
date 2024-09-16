@@ -301,7 +301,7 @@ def train(data):
             if (
                 data.wandb is not None
                 and data.global_step > 0
-                and (time.time() - data.last_log_time > 3.0)  # or "episode_return" in data.stats)
+                and (time.time() - data.last_log_time > 20)  # or "episode_return" in data.stats)
             ):
                 data.last_log_time = time.time()
                 data.wandb.log(
