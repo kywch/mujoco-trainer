@@ -129,7 +129,7 @@ def evaluate(data):
                 actions, logprob, _, value = policy(o_device)
 
             if config.device.startswith("cuda"):
-                torch.cuda.synchronize()
+                torch.cuda.synchronize(config.device)
 
         with profile.eval_misc:
             value = value.flatten()
@@ -211,7 +211,7 @@ def train(data):
                     )
 
                 if config.device.startswith("cuda"):
-                    torch.cuda.synchronize()
+                    torch.cuda.synchronize(config.device)
 
             with profile.train_misc:
                 logratio = newlogprob - log_probs.reshape(-1)
@@ -256,7 +256,7 @@ def train(data):
                 torch.nn.utils.clip_grad_norm_(data.policy.parameters(), config.max_grad_norm)
                 data.optimizer.step()
                 if config.device.startswith("cuda"):
-                    torch.cuda.synchronize()
+                    torch.cuda.synchronize(config.device)
 
             with profile.train_misc:
                 losses.policy_loss += pg_loss.item() / total_minibatches
