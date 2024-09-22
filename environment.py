@@ -17,7 +17,7 @@ def single_env_creator(
     capture_video,
     video_dir=None,
     idx=None,
-    norm_obs=False,  # to be removed
+    # norm_obs=False,  # to be removed
     pufferl=False,
     # gymnasium provided norm_reward
     rms_norm_reward=True,
@@ -39,18 +39,15 @@ def single_env_creator(
     env = EpisodeStats(env)
     env = pufferlib.postprocess.ClipAction(env)  # NOTE: this changed actions space
 
-    # TODO: If not necessary, comment out the below
-    if norm_obs is True:
-        env = gymnasium.wrappers.NormalizeObservation(env)
-        env = gymnasium.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
+    # NOTE: The pretrained models do NOT work well with newly instantiated norm obs wrappers
+    #   because the mean and std are not updated. These should be handled by the pretrained models
+    # if norm_obs is True:
+    #     env = gymnasium.wrappers.NormalizeObservation(env)
+    #     env = gymnasium.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
 
-    # TODO: RMS norm reward is slow. If simple norm works, use that
-    if simp_norm_reward is True:
-        env = SimpleNormalizeReward(env)  # , bias=simp_norm_reward_bias)
-
-    elif rms_norm_reward is True:
-        env = RMSNormalizeReward(env, gamma=rms_norm_reward_gamma)
-        env = gymnasium.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+    # TODO: Add env-specific reward shaping
+    if rms_norm_reward is True:
+        env = RMSNormalizeReward(env, gamma=rms_norm_reward_gamma, clip=10)
 
     if pufferl is True:
         env = pufferlib.emulation.GymnasiumPufferEnv(env=env)
@@ -159,41 +156,6 @@ class EpisodeStats(gymnasium.Wrapper):
         return observation, reward, terminated, truncated, info
 
 
-class SimpleNormalizeReward(gymnasium.Wrapper):
-    def __init__(self, env, scale=0.1, traj_history_len=100):
-        self.env = env
-        self.observation_space = env.observation_space
-        self.action_space = env.action_space
-
-        self.reward_scale = scale
-
-        # To get average reward
-        self.sum_reward_raw = 0
-        self.sum_reward_norm = 0
-        self.total_steps = 1  # to avoid division by zero
-
-        self.reset()
-
-    def step(self, action):
-        observation, reward, terminated, truncated, info = super().step(action)
-
-        self.total_steps += 1
-        self.sum_reward_raw += reward
-
-        # TODO: try exponential moving average with alpha as a hyperparameter
-        norm_rew = (reward - self.sum_reward_raw / self.total_steps) * self.reward_scale
-        self.sum_reward_norm += norm_rew
-
-        if terminated:
-            norm_rew = -1.0
-
-        if terminated or truncated:
-            info["normalized_reward"] = self.sum_reward_norm / self.total_steps
-
-        return observation, norm_rew, terminated, truncated, info
-
-
-### Replace below with simple rew normalizations
 class RunningMeanStd:
     """Tracks the mean, variance and count of values."""
 
@@ -248,6 +210,7 @@ class RMSNormalizeReward(gymnasium.core.Wrapper, gymnasium.utils.RecordConstruct
         env: gymnasium.Env,
         gamma: float = 0.99,
         epsilon: float = 1e-8,
+        clip: float = 10,
     ):
         """This wrapper will normalize immediate rewards s.t. their exponential moving average has a fixed variance.
 
@@ -270,6 +233,7 @@ class RMSNormalizeReward(gymnasium.core.Wrapper, gymnasium.utils.RecordConstruct
         self.returns = np.zeros(self.num_envs)
         self.gamma = gamma
         self.epsilon = epsilon
+        self.clip = clip
 
         # To track rewards
         self.total_reward = 0
@@ -284,6 +248,9 @@ class RMSNormalizeReward(gymnasium.core.Wrapper, gymnasium.utils.RecordConstruct
         rews = self.normalize(rews)
         if not self.is_vector_env:
             rews = rews[0]
+
+        # Clip the reward
+        rews = np.clip(rews, -self.clip, self.clip)
 
         # For logging rewards
         self.total_reward += rews
