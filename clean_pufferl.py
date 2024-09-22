@@ -79,23 +79,23 @@ def create(config, vecenv, policy, optimizer=None, wandb=None, skip_dash=False):
             test_obs = torch.randn(config.num_envs, policy.obs_size, device=config.device)
             policy_forward(test_obs)
 
-    if "cudagraphs" in config and config.cudagraphs:
-        pass
-        # NOTE: This produces nans
-        # graph_forward = CudaGraphModule(policy_forward)
+    # NOTE: This produces nans, so disabling for now
+    # if config.cudagraphs:
+    #     pass
+    #     graph_forward = CudaGraphModule(policy_forward)
 
-        # # Capture and test the cudagraphs
-        # for _ in range (10):
-        #     test_obs = torch.randn(config.num_envs, policy.obs_size, device=config.device)
-        #     torch.compiler.cudagraph_mark_step_begin()
-        #     graph_forward(test_obs)
-        # policy_forward = graph_forward
+    #     # Capture and test the cudagraphs
+    #     for _ in range (10):
+    #         test_obs = torch.randn(config.num_envs, policy.obs_size, device=config.device)
+    #         torch.compiler.cudagraph_mark_step_begin()
+    #         graph_forward(test_obs)
+    #     policy_forward = graph_forward
 
     optimizer = torch.optim.Adam(
         policy.parameters(),
         lr=config.learning_rate,
         eps=1e-5,
-        capturable=config.cudagraphs and not config.compile,
+        # capturable=config.cudagraphs and not config.compile,
     )
 
     return pufferlib.namespace(
