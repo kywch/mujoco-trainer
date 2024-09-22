@@ -12,10 +12,10 @@ from pufferlib.pytorch import layer_init
 # This replaces gymnasium's NormalizeObservation wrapper
 # NOTE: Tried BatchNorm1d with momentum=None, but the policy did not learn. Check again later.
 class RunningNorm(nn.Module):
-    def __init__(self, shape, epsilon=1e-5, clip=10.0):
+    def __init__(self, shape: int, epsilon=1e-5, clip=10.0):
         super().__init__()
-        self.register_buffer("running_mean", torch.zeros(shape, dtype=torch.float32))
-        self.register_buffer("running_var", torch.ones(shape, dtype=torch.float32))
+        self.register_buffer("running_mean", torch.zeros((1, shape), dtype=torch.float32))
+        self.register_buffer("running_var", torch.ones((1, shape), dtype=torch.float32))
         self.register_buffer("count", torch.ones(1, dtype=torch.float32))
         self.epsilon = epsilon
         self.clip = clip
@@ -33,6 +33,7 @@ class RunningNorm(nn.Module):
         if self.training:
             with torch.no_grad():
                 x = x.float()
+                assert x.dim() == 2, "x must be 2D"
                 mean = x.mean(0)
                 var = x.var(0, unbiased=False)
                 weight = 1 / self.count

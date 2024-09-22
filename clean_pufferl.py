@@ -213,7 +213,7 @@ def train(data):
 
             with profile.train_forward:
                 if update_obs_stats is not None:
-                    update_obs_stats(obs)
+                    update_obs_stats(obs.reshape(-1, *data.vecenv.single_observation_space.shape))
 
                 if experience.lstm_h is not None:
                     _, newlogprob, entropy, newvalue, lstm_state = policy(
