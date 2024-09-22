@@ -28,6 +28,7 @@ class RunningNorm(nn.Module):
             self.clip,
         )
 
+    @torch.jit.ignore
     def update(self, x):
         # NOTE: Separated update from forward to compile the policy
         # update() must be called to update the running mean and var
@@ -52,7 +53,7 @@ class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
         self.obs_size = np.array(envs.single_observation_space.shape).prod()
         action_size = np.prod(envs.single_action_space.shape)
 
-        self.obs_norm = RunningNorm(self.obs_size)
+        self.obs_norm = torch.jit.script(RunningNorm(self.obs_size))
 
         self.critic = nn.Sequential(
             layer_init(nn.Linear(self.obs_size, hidden_size)),
