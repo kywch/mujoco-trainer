@@ -33,16 +33,6 @@ torch.set_float32_matmul_precision("high")
 # pyximport.install(setup_args={"include_dirs": np.get_include()})
 
 
-class InferenceOnly(torch.nn.Module):
-    def __init__(self, policy):
-        super().__init__()
-        self.policy = policy
-
-    def forward(self, obs):
-        with torch.no_grad():
-            return self.policy.forward(obs)
-
-
 def create(config, vecenv, policy, optimizer=None, wandb=None, skip_dash=False):
     seed_everything(config.seed, config.torch_deterministic)
     profile = Profile()
@@ -89,7 +79,7 @@ def create(config, vecenv, policy, optimizer=None, wandb=None, skip_dash=False):
             test_obs = torch.randn(config.num_envs, policy.obs_size, device=config.device)
             policy_forward(test_obs)
 
-    if config.cudagraphs:
+    if "cudagraphs" in config and config.cudagraphs:
         pass
         # NOTE: This produces nans
         # graph_forward = CudaGraphModule(policy_forward)

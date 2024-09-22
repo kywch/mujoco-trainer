@@ -36,8 +36,9 @@ bptt_horizon = 16
 total_timesteps = 10_000_000
 
 # Check if the results are the same before compiling
-compile = false
+compile = true
 compile_mode = "reduce-overhead"
+cudagraphs = false
 
 # Extra steps to evaluate the agent after training
 eval_timesteps = 1_000_000
