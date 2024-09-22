@@ -42,20 +42,21 @@ def make_policy(env, policy_cls, rnn_cls, args):
     return policy.to(args["train"]["device"])
 
 
-def parse_args():
+def parse_args(config="config/debug_cuda.toml"):
     parser = argparse.ArgumentParser(
         description="Training arguments for gymnasium mujoco", add_help=False
     )
-    parser.add_argument("-c", "--config", default="config/debug.toml")
+    parser.add_argument("-c", "--config", default=config)
     parser.add_argument(
         "-e",
         "--env-name",
         type=str,
-        default="Humanoid-v4",
+        default="Ant-v5",
         help="Name of specific environment to run",
     )
 
     parser.add_argument(
+        "-m",
         "--mode",
         type=str,
         default="train",
@@ -63,7 +64,10 @@ def parse_args():
     )
     # parser.add_argument("--eval-model-path", type=str, default=None)
     parser.add_argument(
-        "--eval-model-path", type=str, default="experiments/HalfCheetah-v4-55d3f92e/model_000157.pt"
+        "-p",
+        "--eval-model-path",
+        type=str,
+        default="experiments/HalfCheetah-v4-55d3f92e/model_000157.pt",
     )
 
     parser.add_argument(

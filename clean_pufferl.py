@@ -18,6 +18,7 @@ from rich.console import Console
 from rich.table import Table
 
 import torch
+from tensordict.nn import CudaGraphModule
 
 import pufferlib
 import pufferlib.utils
@@ -37,7 +38,7 @@ def create(config, vecenv, policy, optimizer=None, wandb=None, skip_dash=False):
     profile = Profile()
     losses = make_losses()
 
-    utilization = Utilization()
+    utilization = Utilization(config.device)
     msg = f"Model Size: {abbreviate(count_params(policy))} parameters"
     print_dashboard(
         config.env, utilization, 0, 0, profile, losses, {}, msg, clear=True, skip_dash=skip_dash
@@ -64,16 +65,26 @@ def create(config, vecenv, policy, optimizer=None, wandb=None, skip_dash=False):
     )
 
     uncompiled_policy = policy
+    policy_forward = policy.forward
 
     if config.compile:
-        policy = torch.compile(policy, mode=config.compile_mode)
+        policy_forward = torch.compile(policy_forward, mode=config.compile_mode)
 
-    optimizer = torch.optim.Adam(policy.parameters(), lr=config.learning_rate, eps=1e-5)
+    # NOTE: Using both compile and cudagraphs was not successful, so using only one
+    elif config.cudagraphs:
+        policy_forward = CudaGraphModule(policy_forward)
+
+    optimizer = torch.optim.Adam(
+        policy.parameters(),
+        lr=config.learning_rate,
+        eps=1e-5,
+        capturable=config.cudagraphs and not config.compile,
+    )
 
     return pufferlib.namespace(
         config=config,
         vecenv=vecenv,
-        policy=policy,
+        policy_forward=policy_forward,
         uncompiled_policy=uncompiled_policy,
         optimizer=optimizer,
         experience=experience,
@@ -95,9 +106,9 @@ def evaluate(data):
     config, profile, experience = data.config, data.profile, data.experience
 
     with profile.eval_misc:
-        policy = data.policy
+        policy_forward = data.policy_forward
         # Freeze the Norm layers
-        policy.eval()
+        data.uncompiled_policy.eval()
         infos = defaultdict(list)
         lstm_h, lstm_c = experience.lstm_h, experience.lstm_c
 
@@ -122,11 +133,11 @@ def evaluate(data):
             if lstm_h is not None:
                 h = lstm_h[:, env_id]
                 c = lstm_c[:, env_id]
-                actions, logprob, _, value, (h, c) = policy(o_device, (h, c))
+                actions, logprob, _, value, (h, c) = policy_forward(o_device, (h, c))
                 lstm_h[:, env_id] = h
                 lstm_c[:, env_id] = c
             else:
-                actions, logprob, _, value = policy(o_device)
+                actions, logprob, _, value = policy_forward(o_device)
 
             if config.device.startswith("cuda"):
                 torch.cuda.synchronize(config.device)
@@ -171,7 +182,9 @@ def train(data):
     losses = data.losses
 
     with profile.train_misc:
-        data.policy.train()
+        policy = data.uncompiled_policy
+        policy.train()
+        update_obs_stats = getattr(policy, "update_obs_stats", None)
         idxs = experience.sort_training_data()
         dones_np = experience.dones_np[idxs]
         values_np = experience.values_np[idxs]
@@ -199,13 +212,16 @@ def train(data):
                 ret = experience.b_returns[mb]
 
             with profile.train_forward:
+                if update_obs_stats is not None:
+                    update_obs_stats(obs)
+
                 if experience.lstm_h is not None:
-                    _, newlogprob, entropy, newvalue, lstm_state = data.policy(
+                    _, newlogprob, entropy, newvalue, lstm_state = policy(
                         obs, state=lstm_state, action=atn
                     )
                     lstm_state = (lstm_state[0].detach(), lstm_state[1].detach())
                 else:
-                    _, newlogprob, entropy, newvalue = data.policy(
+                    _, newlogprob, entropy, newvalue = policy(
                         obs.reshape(-1, *data.vecenv.single_observation_space.shape),
                         action=atn,
                     )
@@ -253,7 +269,7 @@ def train(data):
             with profile.learn:
                 data.optimizer.zero_grad()
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(data.policy.parameters(), config.max_grad_norm)
+                torch.nn.utils.clip_grad_norm_(policy.parameters(), config.max_grad_norm)
                 data.optimizer.step()
                 if config.device.startswith("cuda"):
                     torch.cuda.synchronize(config.device)
@@ -539,12 +555,13 @@ class Experience:
 
 
 class Utilization(Thread):
-    def __init__(self, delay=1, maxlen=20):
+    def __init__(self, device, delay=1, maxlen=20):
         super().__init__()
         self.cpu_mem = deque(maxlen=maxlen)
         self.cpu_util = deque(maxlen=maxlen)
         self.gpu_util = deque(maxlen=maxlen)
         self.gpu_mem = deque(maxlen=maxlen)
+        self.device = device
 
         self.delay = delay
         self.stopped = False
@@ -556,7 +573,7 @@ class Utilization(Thread):
             mem = psutil.virtual_memory()
             self.cpu_mem.append(mem.active / mem.total)
             if torch.cuda.is_available():
-                self.gpu_util.append(torch.cuda.utilization())
+                self.gpu_util.append(torch.cuda.utilization(self.device))
                 free, total = torch.cuda.mem_get_info()
                 self.gpu_mem.append(free / total)
             else:
