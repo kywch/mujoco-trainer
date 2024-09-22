@@ -1,5 +1,5 @@
 [base]
-policy_name = ""RegCritPolicy"
+policy_name = "RegCritPolicy"
 
 [env]
 simp_norm_reward = false
@@ -30,7 +30,7 @@ zero_copy = false
 data_dir = "experiments"
 checkpoint_interval = 125
 batch_size = 16384
-minibatch_size = 4084
+minibatch_size = 4096
 bptt_horizon = 16
 
 total_timesteps = 10_000_000
