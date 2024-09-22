@@ -67,6 +67,9 @@ def create(config, vecenv, policy, optimizer=None, wandb=None, skip_dash=False):
     uncompiled_policy = policy
     policy_forward = policy.forward
 
+    # xcxc
+    input(f"Compiling policy forward: {config.compile}, cudagraphs: {config.cudagraphs}")
+
     if config.compile:
         policy_forward = torch.compile(policy_forward, mode=config.compile_mode)
 
