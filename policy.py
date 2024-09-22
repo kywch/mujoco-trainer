@@ -44,6 +44,25 @@ class RunningNorm(nn.Module):
                 self.running_var = self.running_var * (1 - weight) + var * weight
                 self.count += 1
 
+    # NOTE: below are needed to torch.save() the model
+    @torch.jit.ignore
+    def __getstate__(self):
+        return {
+            "running_mean": self.running_mean,
+            "running_var": self.running_var,
+            "count": self.count,
+            "epsilon": self.epsilon,
+            "clip": self.clip,
+        }
+
+    @torch.jit.ignore
+    def __setstate__(self, state):
+        self.running_mean = state["running_mean"]
+        self.running_var = state["running_var"]
+        self.count = state["count"]
+        self.epsilon = state["epsilon"]
+        self.clip = state["clip"]
+
 
 # TODO: test 128 width, with the lstm
 class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
