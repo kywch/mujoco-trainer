@@ -1,0 +1,43 @@
+[base]
+policy_name = ""RegCritPolicy"
+
+[env]
+simp_norm_reward = false
+
+[train]
+seed = 1
+torch_deterministic = true
+cpu_offload = false
+device = "cuda"
+learning_rate = 0.0015
+anneal_lr = false
+gamma = 0.99
+gae_lambda = 0.75
+update_epochs = 4
+norm_adv = true
+clip_coef = 0.5
+clip_vloss = true
+vf_coef = 1.0
+vf_clip_coef = 0.5
+max_grad_norm = 0.5
+ent_coef = 0.00015
+# target_kl = None  # Assign a value when needed.
+
+num_envs = 64
+num_workers = 16
+env_batch_size = 16
+zero_copy = false
+data_dir = "experiments"
+checkpoint_interval = 125
+batch_size = 16384
+minibatch_size = 4084
+bptt_horizon = 16
+
+total_timesteps = 10_000_000
+
+# Check if the results are the same before compiling
+compile = false
+compile_mode = "reduce-overhead"
+
+# Extra steps to evaluate the agent after training
+eval_timesteps = 1_000_000

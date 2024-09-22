@@ -1,4 +1,5 @@
 import numpy as np
+
 import torch
 import torch.nn as nn
 
@@ -86,20 +87,26 @@ class CleanRLPolicy(pufferlib.frameworks.cleanrl.Policy):
         action_mean = self.actor_decoder_mean(encoding)
         action_logstd = self.actor_decoder_logstd.expand_as(action_mean)
         action_std = torch.exp(action_logstd)
+
+        # NOTE: This produces nans, so disabling for now
+        # Work around for CUDA graph capture
+        # if torch.cuda.is_current_stream_capturing():
+        #     if action is None:
+        #         action = action_mean + action_std * torch.randn_like(action_mean)
+
+        #     # Avoid using the torch.distributions.Normal
+        #     log_probs = (-0.5 * (((action - action_mean) / action_std) ** 2 + 2 * action_std.log() + torch.log(torch.tensor(2 * torch.pi)))).sum(1)
+        #     logits_entropy = (action_std.log() + 0.5 * torch.log(torch.tensor(2 * torch.pi * torch.e))).sum(1)
+
+        # else:
+
         logits = torch.distributions.Normal(action_mean, action_std)
-
         if action is None:
-            if torch.cuda.is_current_stream_capturing():
-                # This is work around for CUDA graph compilation
-                action = action_mean + action_std * torch.randn_like(action_mean)
-            else:
-                action = logits.sample()
-
+            action = logits.sample()
         log_probs = logits.log_prob(action.view(batch, -1)).sum(1)
+        logits_entropy = logits.entropy().sum(1)
 
         # NOTE: entropy can go negative, when std is small (e.g. 0.1)
-        logits_entropy = logits.entropy().sum(1)  # .view(batch, -1).sum(1)
-
         return action, log_probs, logits_entropy, self.critic(x)
 
     def update_obs_stats(self, x):

@@ -18,7 +18,7 @@ from rich.console import Console
 from rich.table import Table
 
 import torch
-from tensordict.nn import CudaGraphModule
+# from tensordict.nn import CudaGraphModule
 
 import pufferlib
 import pufferlib.utils
@@ -31,6 +31,16 @@ torch.set_float32_matmul_precision("high")
 
 # import pyximport
 # pyximport.install(setup_args={"include_dirs": np.get_include()})
+
+
+class InferenceOnly(torch.nn.Module):
+    def __init__(self, policy):
+        super().__init__()
+        self.policy = policy
+
+    def forward(self, obs):
+        with torch.no_grad():
+            return self.policy.forward(obs)
 
 
 def create(config, vecenv, policy, optimizer=None, wandb=None, skip_dash=False):
@@ -65,14 +75,31 @@ def create(config, vecenv, policy, optimizer=None, wandb=None, skip_dash=False):
     )
 
     uncompiled_policy = policy
-    policy_forward = policy.forward
+
+    # Inference-only function
+    def policy_forward(obs):
+        with torch.no_grad():
+            return policy(obs)
 
     if config.compile:
         policy_forward = torch.compile(policy_forward, mode=config.compile_mode)
 
-    # NOTE: Using both compile and cudagraphs was not successful, so using only one
-    elif config.cudagraphs:
-        policy_forward = CudaGraphModule(policy_forward)
+        # Compile and test the policy
+        for _ in range(10):
+            test_obs = torch.randn(config.num_envs, policy.obs_size, device=config.device)
+            policy_forward(test_obs)
+
+    if config.cudagraphs:
+        pass
+        # NOTE: This produces nans
+        # graph_forward = CudaGraphModule(policy_forward)
+
+        # # Capture and test the cudagraphs
+        # for _ in range (10):
+        #     test_obs = torch.randn(config.num_envs, policy.obs_size, device=config.device)
+        #     torch.compiler.cudagraph_mark_step_begin()
+        #     graph_forward(test_obs)
+        # policy_forward = graph_forward
 
     optimizer = torch.optim.Adam(
         policy.parameters(),
