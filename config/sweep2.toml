@@ -19,7 +19,7 @@ learning_rate = 3e-4
 anneal_lr = false
 gamma = 0.99
 gae_lambda = 0.75
-update_epochs = 10
+update_epochs = 5
 norm_adv = true
 clip_coef = 0.5
 clip_vloss = true
@@ -35,11 +35,11 @@ env_batch_size = 16
 zero_copy = false
 data_dir = "experiments"
 checkpoint_interval = 1000
-batch_size = 2048
-minibatch_size = 512
+batch_size = 16384
+minibatch_size = 4096
 bptt_horizon = 16
 
-total_timesteps = 6_000_000
+total_timesteps = 4_000_000
 
 # Check if the results are the same before compiling
 compile = true
