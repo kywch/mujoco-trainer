@@ -22,7 +22,8 @@ class RunningNorm(nn.Module):
 
     def forward(self, x):
         return torch.clamp(
-            (x - self.running_mean) / torch.sqrt(self.running_var + self.epsilon),
+            (x - self.running_mean.expand_as(x))
+            / torch.sqrt(self.running_var.expand_as(x) + self.epsilon),
             -self.clip,
             self.clip,
         )
@@ -34,8 +35,8 @@ class RunningNorm(nn.Module):
             with torch.no_grad():
                 x = x.float()
                 assert x.dim() == 2, "x must be 2D"
-                mean = x.mean(0)
-                var = x.var(0, unbiased=False)
+                mean = x.mean(0, keepdim=True)
+                var = x.var(0, unbiased=False, keepdim=True)
                 weight = 1 / self.count
                 self.running_mean = self.running_mean * (1 - weight) + mean * weight
                 self.running_var = self.running_var * (1 - weight) + var * weight
