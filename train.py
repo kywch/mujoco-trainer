@@ -42,7 +42,7 @@ def make_policy(env, policy_cls, rnn_cls, args):
     return policy.to(args["train"]["device"])
 
 
-def parse_args(config="config/debug_cuda.toml"):
+def parse_args(config="config/debug.toml"):
     parser = argparse.ArgumentParser(
         description="Training arguments for gymnasium mujoco", add_help=False
     )
